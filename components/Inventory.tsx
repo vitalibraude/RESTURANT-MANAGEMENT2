@@ -1,24 +1,41 @@
 
 import React, { useState } from 'react';
-import { Package, Plus, AlertCircle, Search } from 'lucide-react';
+import { Package, Plus, AlertCircle, Search, X } from 'lucide-react';
 import { InventoryItem } from '../types';
 
 type OrderMode = 'manual' | 'semi-auto' | 'full-auto';
 
 interface ExtendedInventoryItem extends InventoryItem {
   orderMode: OrderMode;
+  suppliers: string[];
 }
 
+const availableSuppliers = [
+  'טמפו',
+  'תנובה',
+  'קוקה קולה',
+  'אסם',
+  'יינות ביתן',
+  'עלית',
+  'אורז הזהב',
+  'סנפרוסט',
+  'זוגלובק',
+  'מעדנות יוכנן'
+];
+
 const mockInventory: ExtendedInventoryItem[] = [
-  { id: '1', name: 'עגבניות', quantity: 15, unit: 'ק"ג', minThreshold: 10, orderMode: 'manual' },
-  { id: '2', name: 'קמח', quantity: 5, unit: 'ק"ג', minThreshold: 20, orderMode: 'semi-auto' },
-  { id: '3', name: 'שמן זית', quantity: 40, unit: 'ליטר', minThreshold: 10, orderMode: 'full-auto' },
-  { id: '4', name: 'ביצים', quantity: 24, unit: 'יחידות', minThreshold: 60, orderMode: 'semi-auto' },
-  { id: '5', name: 'חזה עוף', quantity: 12, unit: 'ק"ג', minThreshold: 5, orderMode: 'manual' },
+  { id: '1', name: 'עגבניות', quantity: 15, unit: 'ק"ג', minThreshold: 10, orderMode: 'manual', suppliers: ['סנפרוסט'] },
+  { id: '2', name: 'קמח', quantity: 5, unit: 'ק"ג', minThreshold: 20, orderMode: 'semi-auto', suppliers: ['אסם'] },
+  { id: '3', name: 'שמן זית', quantity: 40, unit: 'ליטר', minThreshold: 10, orderMode: 'full-auto', suppliers: ['עלית'] },
+  { id: '4', name: 'ביצים', quantity: 24, unit: 'יחידות', minThreshold: 60, orderMode: 'semi-auto', suppliers: ['תנובה'] },
+  { id: '5', name: 'חזה עוף', quantity: 12, unit: 'ק"ג', minThreshold: 5, orderMode: 'manual', suppliers: ['מעדנות יוכנן', 'זוגלובק'] },
 ];
 
 const Inventory: React.FC = () => {
   const [inventory, setInventory] = useState<ExtendedInventoryItem[]>(mockInventory);
+  const [allSuppliers, setAllSuppliers] = useState<string[]>(availableSuppliers);
+  const [editingSuppliers, setEditingSuppliers] = useState<string | null>(null);
+  const [newSupplier, setNewSupplier] = useState<string>('');
 
   const handleOrderModeChange = (itemId: string, newMode: OrderMode) => {
     setInventory(prev => prev.map(item => 
@@ -26,11 +43,28 @@ const Inventory: React.FC = () => {
     ));
   };
 
-  const getOrderModeLabel = (mode: OrderMode) => {
-    switch(mode) {
-      case 'manual': return 'ידני';
-      case 'semi-auto': return 'חצי אוטומטי';
-      case 'full-auto': return 'אוטומטי לחלוטין';
+  const toggleSupplier = (itemId: string, supplier: string) => {
+    setInventory(prev => prev.map(item => {
+      if (item.id === itemId) {
+        const hasSupplier = item.suppliers.includes(supplier);
+        return {
+          ...item,
+          suppliers: hasSupplier 
+            ? item.suppliers.filter(s => s !== supplier)
+            : [...item.suppliers, supplier]
+        };
+      }
+      return item;
+    }));
+  };
+
+  const addNewSupplier = (itemId: string) => {
+    if (newSupplier.trim() && !allSuppliers.includes(newSupplier.trim())) {
+      setAllSuppliers(prev => [...prev, newSupplier.trim()]);
+    }
+    if (newSupplier.trim()) {
+      toggleSupplier(itemId, newSupplier.trim());
+      setNewSupplier('');
     }
   };
 
@@ -66,13 +100,14 @@ const Inventory: React.FC = () => {
         </div>
 
         <div className="overflow-x-auto">
-          <table className="w-full text-right border-collapse min-w-[800px]">
+          <table className="w-full text-right border-collapse min-w-[1000px]">
             <thead>
               <tr className="bg-slate-50 text-slate-500 text-sm">
                 <th className="p-3 md:p-4 font-semibold">שם הפריט</th>
                 <th className="p-3 md:p-4 font-semibold">כמות נוכחית</th>
                 <th className="p-3 md:p-4 font-semibold">יחידה</th>
                 <th className="p-3 md:p-4 font-semibold">סטטוס</th>
+                <th className="p-3 md:p-4 font-semibold">ספקים</th>
                 <th className="p-3 md:p-4 font-semibold">הזמנת מלאי</th>
                 <th className="p-3 md:p-4 font-semibold">פעולות</th>
               </tr>
@@ -80,6 +115,7 @@ const Inventory: React.FC = () => {
             <tbody className="divide-y divide-slate-50">
               {inventory.map((item) => {
                 const isLow = item.quantity < item.minThreshold;
+                const isEditing = editingSuppliers === item.id;
                 return (
                   <tr key={item.id} className="hover:bg-slate-50/50 transition-colors">
                     <td className="p-3 md:p-4 font-medium text-slate-800">{item.name}</td>
@@ -96,6 +132,68 @@ const Inventory: React.FC = () => {
                           תקין
                         </span>
                       )}
+                    </td>
+                    <td className="p-3 md:p-4">
+                      <div className="relative">
+                        {!isEditing ? (
+                          <button
+                            onClick={() => setEditingSuppliers(item.id)}
+                            className="text-right w-full px-3 py-1.5 rounded-lg border border-slate-200 bg-white text-xs hover:bg-slate-50 transition-colors"
+                          >
+                            {item.suppliers.length > 0 ? (
+                              <div className="flex flex-wrap gap-1">
+                                {item.suppliers.map(supplier => (
+                                  <span key={supplier} className="bg-orange-100 text-orange-700 px-2 py-0.5 rounded">
+                                    {supplier}
+                                  </span>
+                                ))}
+                              </div>
+                            ) : (
+                              <span className="text-slate-400">בחר ספקים...</span>
+                            )}
+                          </button>
+                        ) : (
+                          <div className="absolute z-10 bg-white border border-slate-200 rounded-lg shadow-lg p-3 min-w-[250px] left-0">
+                            <div className="flex justify-between items-center mb-2">
+                              <span className="text-xs font-bold text-slate-700">בחר ספקים</span>
+                              <button onClick={() => setEditingSuppliers(null)} className="text-slate-400 hover:text-slate-600">
+                                <X size={16} />
+                              </button>
+                            </div>
+                            <div className="space-y-1 max-h-48 overflow-y-auto mb-2">
+                              {allSuppliers.map(supplier => (
+                                <label key={supplier} className="flex items-center gap-2 p-1.5 hover:bg-slate-50 rounded cursor-pointer">
+                                  <input
+                                    type="checkbox"
+                                    checked={item.suppliers.includes(supplier)}
+                                    onChange={() => toggleSupplier(item.id, supplier)}
+                                    className="rounded border-slate-300 text-orange-600 focus:ring-orange-500"
+                                  />
+                                  <span className="text-sm text-slate-700">{supplier}</span>
+                                </label>
+                              ))}
+                            </div>
+                            <div className="border-t border-slate-100 pt-2">
+                              <div className="flex gap-1">
+                                <input
+                                  type="text"
+                                  value={newSupplier}
+                                  onChange={(e) => setNewSupplier(e.target.value)}
+                                  onKeyPress={(e) => e.key === 'Enter' && addNewSupplier(item.id)}
+                                  placeholder="הוסף ספק חדש..."
+                                  className="flex-1 px-2 py-1 text-xs border border-slate-200 rounded focus:outline-none focus:ring-1 focus:ring-orange-500"
+                                />
+                                <button
+                                  onClick={() => addNewSupplier(item.id)}
+                                  className="px-2 py-1 bg-orange-600 text-white text-xs rounded hover:bg-orange-700"
+                                >
+                                  הוסף
+                                </button>
+                              </div>
+                            </div>
+                          </div>
+                        )}
+                      </div>
                     </td>
                     <td className="p-3 md:p-4">
                       <select
