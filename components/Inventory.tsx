@@ -1,6 +1,6 @@
 
 import React, { useState } from 'react';
-import { Package, Plus, AlertCircle, Search, X } from 'lucide-react';
+import { Package, Plus, AlertCircle, Search, X, ChevronDown, ShoppingCart } from 'lucide-react';
 import { InventoryItem } from '../types';
 
 type OrderMode = 'manual' | 'semi-auto' | 'full-auto';
@@ -36,6 +36,7 @@ const Inventory: React.FC = () => {
   const [allSuppliers, setAllSuppliers] = useState<string[]>(availableSuppliers);
   const [editingSuppliers, setEditingSuppliers] = useState<string | null>(null);
   const [newSupplier, setNewSupplier] = useState<string>('');
+  const [openActionMenu, setOpenActionMenu] = useState<string | null>(null);
 
   const handleOrderModeChange = (itemId: string, newMode: OrderMode) => {
     setInventory(prev => prev.map(item => 
@@ -74,6 +75,12 @@ const Inventory: React.FC = () => {
       case 'semi-auto': return 'bg-blue-50 text-blue-700 border-blue-200';
       case 'full-auto': return 'bg-green-50 text-green-700 border-green-200';
     }
+  };
+
+  const handleOrderAction = (itemId: string, action: string) => {
+    const item = inventory.find(i => i.id === itemId);
+    alert(`פעולה: ${action}\nפריט: ${item?.name}\nספקים: ${item?.suppliers.join(', ') || 'לא נבחרו'}`);
+    setOpenActionMenu(null);
   };
 
   return (
@@ -201,7 +208,59 @@ const Inventory: React.FC = () => {
                         onChange={(e) => handleOrderModeChange(item.id, e.target.value as OrderMode)}
                         className={`px-3 py-1.5 rounded-lg border text-xs font-medium cursor-pointer transition-colors ${getOrderModeColor(item.orderMode)} hover:opacity-80 focus:outline-none focus:ring-2 focus:ring-orange-500`}
                       >
-                        <option value="manual">ידני</option>
+                       div className="relative">
+                        <button
+                          onClick={() => setOpenActionMenu(openActionMenu === item.id ? null : item.id)}
+                          className="px-3 py-1.5 bg-orange-600 text-white rounded-lg flex items-center gap-1 hover:bg-orange-700 transition-colors text-sm font-medium"
+                        >
+                          <ShoppingCart size={16} />
+                          <span>פעולות</span>
+                          <ChevronDown size={14} />
+                        </button>
+                        
+                        {openActionMenu === item.id && (
+                          <div className="absolute z-20 left-0 mt-1 bg-white border border-slate-200 rounded-lg shadow-xl min-w-[220px]">
+                            <div className="py-1">
+                              <button
+                                onClick={() => handleOrderAction(item.id, 'הזמנה מיידית')}
+                                className="w-full text-right px-4 py-2 text-sm text-slate-700 hover:bg-orange-50 hover:text-orange-700 transition-colors flex items-center gap-2"
+                              >
+                                <div className="w-2 h-2 rounded-full bg-red-500"></div>
+                                בצע הזמנה מיידית
+                              </button>
+                              <button
+                                onClick={() => handleOrderAction(item.id, 'הזמנה לפי כמות שנקבעה')}
+                                className="w-full text-right px-4 py-2 text-sm text-slate-700 hover:bg-orange-50 hover:text-orange-700 transition-colors flex items-center gap-2"
+                              >
+                                <div className="w-2 h-2 rounded-full bg-blue-500"></div>
+                                בצע הזמנה לפי כמות שנקבעה
+                              </button>
+                              <button
+                                onClick={() => handleOrderAction(item.id, 'הזמנה לפי תאריכי הספק')}
+                                className="w-full text-right px-4 py-2 text-sm text-slate-700 hover:bg-orange-50 hover:text-orange-700 transition-colors flex items-center gap-2"
+                              >
+                                <div className="w-2 h-2 rounded-full bg-purple-500"></div>
+                                בצע הזמנה לפי תאריכי הספק
+                              </button>
+                              <div className="border-t border-slate-100 my-1"></div>
+                              <button
+                                onClick={() => handleOrderAction(item.id, 'הזמנה לשבוע הבא')}
+                                className="w-full text-right px-4 py-2 text-sm text-slate-700 hover:bg-orange-50 hover:text-orange-700 transition-colors flex items-center gap-2"
+                              >
+                                <div className="w-2 h-2 rounded-full bg-green-500"></div>
+                                בצע הזמנה לשבוע הבא
+                              </button>
+                              <button
+                                onClick={() => handleOrderAction(item.id, 'הזמנה לחודש הבא')}
+                                className="w-full text-right px-4 py-2 text-sm text-slate-700 hover:bg-orange-50 hover:text-orange-700 transition-colors flex items-center gap-2"
+                              >
+                                <div className="w-2 h-2 rounded-full bg-yellow-500"></div>
+                                בצע הזמנה לחודש הבא
+                              </button>
+                            </div>
+                          </div>
+                        )}
+                      </div
                         <option value="semi-auto">חצי אוטומטי</option>
                         <option value="full-auto">אוטומטי לחלוטין</option>
                       </select>
