@@ -98,6 +98,15 @@ const SupplierOrders: React.FC<SupplierOrdersProps> = ({ preSelectedItem }) => {
           <h2 className="text-2xl font-bold text-slate-800">הזמנות מספקים</h2>
           <p className="text-slate-500">צפייה וניהול הזמנות מספקים.</p>
         </div>
+        <button
+          className="bg-orange-600 text-white px-6 py-3 rounded-lg hover:bg-orange-700 transition-colors flex items-center gap-2 font-medium shadow-lg"
+          onClick={() => {
+            alert('פתיחת טופס יצירת הזמנה חדשה - בקרוב!');
+          }}
+        >
+          <ShoppingCart size={20} />
+          צור הזמנה חדשה
+        </button>
       </div>
 
       {orders.length === 0 ? (
