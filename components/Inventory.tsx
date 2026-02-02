@@ -35,44 +35,46 @@ const Inventory: React.FC = () => {
           />
         </div>
 
-        <table className="w-full text-right border-collapse">
-          <thead>
-            <tr className="bg-slate-50 text-slate-500 text-sm">
-              <th className="p-4 font-semibold">שם הפריט</th>
-              <th className="p-4 font-semibold">כמות נוכחית</th>
-              <th className="p-4 font-semibold">יחידה</th>
-              <th className="p-4 font-semibold">סטטוס</th>
-              <th className="p-4 font-semibold">פעולות</th>
-            </tr>
-          </thead>
-          <tbody className="divide-y divide-slate-50">
-            {mockInventory.map((item) => {
-              const isLow = item.quantity < item.minThreshold;
-              return (
-                <tr key={item.id} className="hover:bg-slate-50/50 transition-colors">
-                  <td className="p-4 font-medium text-slate-800">{item.name}</td>
-                  <td className="p-4 text-slate-600 font-mono">{item.quantity}</td>
-                  <td className="p-4 text-slate-500">{item.unit}</td>
-                  <td className="p-4">
-                    {isLow ? (
-                      <span className="flex items-center gap-1 text-red-500 text-xs font-bold bg-red-50 w-fit px-2 py-1 rounded-full">
-                        <AlertCircle size={14} />
-                        מלאי נמוך
-                      </span>
-                    ) : (
-                      <span className="text-green-600 text-xs font-bold bg-green-50 w-fit px-2 py-1 rounded-full">
-                        תקין
-                      </span>
-                    )}
-                  </td>
-                  <td className="p-4">
-                    <button className="text-orange-600 hover:underline text-sm font-medium">ערוך</button>
-                  </td>
-                </tr>
-              );
-            })}
-          </tbody>
-        </table>
+        <div className="overflow-x-auto">
+          <table className="w-full text-right border-collapse min-w-[600px]">
+            <thead>
+              <tr className="bg-slate-50 text-slate-500 text-sm">
+                <th className="p-3 md:p-4 font-semibold">שם הפריט</th>
+                <th className="p-3 md:p-4 font-semibold">כמות נוכחית</th>
+                <th className="p-3 md:p-4 font-semibold">יחידה</th>
+                <th className="p-3 md:p-4 font-semibold">סטטוס</th>
+                <th className="p-3 md:p-4 font-semibold">פעולות</th>
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-slate-50">
+              {mockInventory.map((item) => {
+                const isLow = item.quantity < item.minThreshold;
+                return (
+                  <tr key={item.id} className="hover:bg-slate-50/50 transition-colors">
+                    <td className="p-3 md:p-4 font-medium text-slate-800">{item.name}</td>
+                    <td className="p-3 md:p-4 text-slate-600 font-mono">{item.quantity}</td>
+                    <td className="p-3 md:p-4 text-slate-500">{item.unit}</td>
+                    <td className="p-3 md:p-4">
+                      {isLow ? (
+                        <span className="flex items-center gap-1 text-red-500 text-xs font-bold bg-red-50 w-fit px-2 py-1 rounded-full">
+                          <AlertCircle size={14} />
+                          מלאי נמוך
+                        </span>
+                      ) : (
+                        <span className="text-green-600 text-xs font-bold bg-green-50 w-fit px-2 py-1 rounded-full">
+                          תקין
+                        </span>
+                      )}
+                    </td>
+                    <td className="p-3 md:p-4">
+                      <button className="text-orange-600 hover:underline text-sm font-medium">ערוך</button>
+                    </td>
+                  </tr>
+                );
+              })}
+            </tbody>
+          </table>
+        </div>
       </div>
     </div>
   );

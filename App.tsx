@@ -41,12 +41,12 @@ const App: React.FC = () => {
   };
 
   return (
-    <div className="min-h-screen bg-slate-50 flex">
+    <div className="min-h-screen bg-slate-50 flex flex-col md:flex-row">
       {/* Sidebar Navigation */}
       <Sidebar activeView={currentView} onViewChange={setCurrentView} />
 
       {/* Main Content Area */}
-      <main className="flex-1 mr-64 p-8 min-h-screen">
+      <main className="flex-1 md:mr-64 p-4 md:p-8 min-h-screen">
         <div className="max-w-7xl mx-auto">
           {renderView()}
         </div>

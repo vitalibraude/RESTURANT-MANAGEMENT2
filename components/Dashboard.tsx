@@ -29,19 +29,19 @@ const Dashboard: React.FC = () => {
 
   return (
     <div className="space-y-6">
-      <header className="flex justify-between items-center mb-8">
+      <header className="flex flex-col md:flex-row justify-between items-start md:items-center mb-6 md:mb-8 gap-4">
         <div>
-          <h1 className="text-3xl font-bold text-slate-800">שלום, מנהל! 👋</h1>
-          <p className="text-slate-500">הנה סקירה של מה שקורה היום במסעדה.</p>
+          <h1 className="text-2xl md:text-3xl font-bold text-slate-800">שלום, מנהל! 👋</h1>
+          <p className="text-sm md:text-base text-slate-500">הנה סקירה של מה שקורה היום במסעדה.</p>
         </div>
-        <div className="bg-white px-4 py-2 rounded-xl shadow-sm border border-slate-100 flex items-center gap-2">
+        <div className="bg-white px-3 md:px-4 py-2 rounded-xl shadow-sm border border-slate-100 flex items-center gap-2">
           <div className="w-3 h-3 bg-green-500 rounded-full animate-pulse"></div>
-          <span className="text-sm font-medium text-slate-600">שידור חי מהמסעדה</span>
+          <span className="text-xs md:text-sm font-medium text-slate-600">שידור חי מהמסעדה</span>
         </div>
       </header>
 
       {/* Stats Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+      <div className="grid grid-cols-2 md:grid-cols-2 lg:grid-cols-4 gap-3 md:gap-6">
         <StatCard icon={TrendingUp} label="מכירות היום" value="₪4,250" delta="+12%" color="bg-blue-50 text-blue-600" />
         <StatCard icon={Users} label="לקוחות" value="128" delta="+5%" color="bg-purple-50 text-purple-600" />
         <StatCard icon={ShoppingCart} label="הזמנות פעילות" value="12" delta="" color="bg-orange-50 text-orange-600" />
@@ -105,14 +105,14 @@ interface StatCardProps {
 }
 
 const StatCard: React.FC<StatCardProps> = ({ icon: Icon, label, value, delta, color }) => (
-  <div className="bg-white p-6 rounded-2xl shadow-sm border border-slate-100 flex items-center gap-4 transition-transform hover:scale-[1.02]">
-    <div className={`p-4 rounded-xl ${color}`}>
-      <Icon size={24} />
+  <div className="bg-white p-3 md:p-6 rounded-xl md:rounded-2xl shadow-sm border border-slate-100 flex flex-col md:flex-row items-start md:items-center gap-2 md:gap-4 transition-transform hover:scale-[1.02]">
+    <div className={`p-2 md:p-4 rounded-lg md:rounded-xl ${color}`}>
+      <Icon size={20} className="md:w-6 md:h-6" />
     </div>
     <div>
-      <p className="text-sm text-slate-500 font-medium">{label}</p>
+      <p className="text-xs md:text-sm text-slate-500 font-medium">{label}</p>
       <div className="flex items-baseline gap-2">
-        <h4 className="text-2xl font-bold text-slate-800">{value}</h4>
+        <h4 className="text-lg md:text-2xl font-bold text-slate-800">{value}</h4>
         {delta && <span className="text-xs font-bold text-green-500">{delta}</span>}
       </div>
     </div>
