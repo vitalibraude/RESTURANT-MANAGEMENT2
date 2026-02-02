@@ -11,6 +11,8 @@ const Suppliers: React.FC = () => {
   const [selectedSupplier, setSelectedSupplier] = useState<string | null>(null);
   const [editingProduct, setEditingProduct] = useState<string | null>(null);
   const [showAddSupplierModal, setShowAddSupplierModal] = useState(false);
+  const [showEditSupplierModal, setShowEditSupplierModal] = useState(false);
+  const [editingSupplier, setEditingSupplier] = useState<suppliersService.SupplierWithProducts | null>(null);
   const [showAddProductModal, setShowAddProductModal] = useState(false);
   const [selectedSupplierForProduct, setSelectedSupplierForProduct] = useState<string | null>(null);
   const [newSupplierData, setNewSupplierData] = useState({
@@ -69,6 +71,32 @@ const Suppliers: React.FC = () => {
     } catch (err: any) {
       alert('שגיאה בהוספת ספק: ' + err.message);
     }
+  };
+
+  const handleEditSupplier = async () => {
+    if (!editingSupplier || !editingSupplier.name.trim()) {
+      alert('יש להזין שם ספק');
+      return;
+    }
+
+    try {
+      await suppliersService.updateSupplier(editingSupplier.id, {
+        name: editingSupplier.name,
+        contact_person: editingSupplier.contact_person,
+        phone: editingSupplier.phone,
+        email: editingSupplier.email
+      });
+      setShowEditSupplierModal(false);
+      setEditingSupplier(null);
+      loadSuppliers();
+    } catch (err: any) {
+      alert('שגיאה בעדכון ספק: ' + err.message);
+    }
+  };
+
+  const openEditSupplier = (supplier: suppliersService.SupplierWithProducts) => {
+    setEditingSupplier({ ...supplier });
+    setShowEditSupplierModal(true);
   };
 
   const handleAddProduct = async () => {
@@ -182,8 +210,9 @@ const Suppliers: React.FC = () => {
                   </div>
                 </div>
                 <button 
-                  onClick={() => alert('עריכת ספק בפיתוח...')}
+                  onClick={() => openEditSupplier(supplier)}
                   className="text-orange-600 hover:bg-orange-50 p-2 rounded-lg transition-colors"
+                  title="ערוך ספק"
                 >
                   <Edit2 size={18} />
                 </button>
@@ -268,6 +297,79 @@ const Suppliers: React.FC = () => {
           <Store size={64} className="mx-auto text-slate-300 mb-4" />
           <h3 className="text-xl font-semibold text-slate-600 mb-2">אין ספקים במערכת</h3>
           <p className="text-slate-400">הרץ את קובץ suppliers-schema.sql כדי להוסיף ספקים</p>
+        </div>
+      )}
+
+      {/* דיאלוג עריכת ספק */}
+      {showEditSupplierModal && editingSupplier && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50" onClick={() => setShowEditSupplierModal(false)}>
+          <div className="bg-white rounded-2xl p-8 max-w-md w-full mx-4 shadow-2xl" onClick={(e) => e.stopPropagation()}>
+            <h3 className="text-2xl font-bold text-slate-800 mb-6">ערוך ספק</h3>
+            
+            <div className="space-y-4">
+              <div>
+                <label className="block text-sm font-medium text-slate-700 mb-2">שם הספק *</label>
+                <input
+                  type="text"
+                  value={editingSupplier.name}
+                  onChange={(e) => setEditingSupplier({...editingSupplier, name: e.target.value})}
+                  className="w-full px-4 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-orange-500"
+                  placeholder="למשל: סנפרוסט"
+                />
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-slate-700 mb-2">איש קשר</label>
+                <input
+                  type="text"
+                  value={editingSupplier.contact_person || ''}
+                  onChange={(e) => setEditingSupplier({...editingSupplier, contact_person: e.target.value})}
+                  className="w-full px-4 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-orange-500"
+                  placeholder="שם איש הקשר"
+                />
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-slate-700 mb-2">טלפון</label>
+                <input
+                  type="tel"
+                  value={editingSupplier.phone || ''}
+                  onChange={(e) => setEditingSupplier({...editingSupplier, phone: e.target.value})}
+                  className="w-full px-4 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-orange-500"
+                  placeholder="054-1234567"
+                />
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-slate-700 mb-2">אימייל</label>
+                <input
+                  type="email"
+                  value={editingSupplier.email || ''}
+                  onChange={(e) => setEditingSupplier({...editingSupplier, email: e.target.value})}
+                  className="w-full px-4 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-orange-500"
+                  placeholder="email@example.com"
+                />
+              </div>
+            </div>
+
+            <div className="flex gap-3 mt-6">
+              <button
+                onClick={handleEditSupplier}
+                className="flex-1 bg-orange-600 text-white px-6 py-3 rounded-lg hover:bg-orange-700 font-semibold transition-colors"
+              >
+                שמור שינויים
+              </button>
+              <button
+                onClick={() => {
+                  setShowEditSupplierModal(false);
+                  setEditingSupplier(null);
+                }}
+                className="flex-1 bg-slate-200 text-slate-700 px-6 py-3 rounded-lg hover:bg-slate-300 font-semibold transition-colors"
+              >
+                ביטול
+              </button>
+            </div>
+          </div>
         </div>
       )}
 
