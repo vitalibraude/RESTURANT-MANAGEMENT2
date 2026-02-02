@@ -10,7 +10,8 @@ import {
   Menu,
   X,
   Store,
-  ShoppingCart
+  ShoppingCart,
+  Users
 } from 'lucide-react';
 import { View } from '../types';
 
@@ -28,6 +29,7 @@ const Sidebar: React.FC<SidebarProps> = ({ activeView, onViewChange }) => {
     { id: 'inventory', label: 'ניהול מלאי', icon: Package },
     { id: 'suppliers', label: 'ספקים', icon: Store },
     { id: 'supplier-orders', label: 'הזמנות מספקים', icon: ShoppingCart },
+    { id: 'employees', label: 'ניהול עובדים', icon: Users },
     { id: 'finance', label: 'כספים וסליקה', icon: CreditCard },
     { id: 'messaging', label: 'הודעות ללקוחות', icon: MessageSquare },
   ];
