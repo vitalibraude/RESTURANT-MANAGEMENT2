@@ -75,7 +75,7 @@ const Sidebar: React.FC<SidebarProps> = ({ activeView, onViewChange }) => {
           </div>
         </div>
         
-        <nav className="flex-1 p-4 space-y-2 mt-4">
+        <nav className="flex-1 p-4 space-y-2 mt-4 overflow-y-auto scrollbar-thin scrollbar-thumb-slate-700 scrollbar-track-slate-800">
           {menuItems.map((item) => {
             const Icon = item.icon;
             const isActive = activeView === item.id;
@@ -96,7 +96,7 @@ const Sidebar: React.FC<SidebarProps> = ({ activeView, onViewChange }) => {
           })}
         </nav>
 
-        <div className="p-4 text-xs text-slate-500 border-t border-slate-800 text-center">
+        <div className="p-4 text-xs text-slate-500 border-t border-slate-800 text-center shrink-0">
           © 2026 STEADY
         </div>
       </div>
