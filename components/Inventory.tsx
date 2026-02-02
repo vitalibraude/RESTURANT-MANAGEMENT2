@@ -31,7 +31,11 @@ const mockInventory: ExtendedInventoryItem[] = [
   { id: '5', name: 'חזה עוף', quantity: 12, unit: 'ק"ג', minThreshold: 5, orderMode: 'manual', suppliers: ['מעדנות יוכנן', 'זוגלובק'] },
 ];
 
-const Inventory: React.FC = () => {
+interface InventoryProps {
+  onImmediateOrder?: (item: {id: string; name: string; quantity: number}) => void;
+}
+
+const Inventory: React.FC<InventoryProps> = ({ onImmediateOrder }) => {
   const [inventory, setInventory] = useState<ExtendedInventoryItem[]>(mockInventory);
   const [allSuppliers, setAllSuppliers] = useState<string[]>(availableSuppliers);
   const [editingSuppliers, setEditingSuppliers] = useState<string | null>(null);
@@ -279,7 +283,18 @@ const Inventory: React.FC = () => {
                       </select>
                     </td>
                     <td className="p-3 md:p-4">
-                      <button className="text-orange-600 hover:underline text-sm font-medium">ערוך</button>
+                      <div className="flex gap-2">
+                        {onImmediateOrder && (
+                          <button 
+                            className="text-green-600 hover:text-green-700 font-medium text-sm flex items-center gap-1"
+                            onClick={() => onImmediateOrder({id: item.id, name: item.name, quantity: item.quantity})}
+                            title="הזמנה מיידית"
+                          >
+                            <ShoppingCart size={16} />
+                          </button>
+                        )}
+                        <button className="text-orange-600 hover:underline text-sm font-medium">ערוך</button>
+                      </div>
                     </td>
                   </tr>
                 );

@@ -2,7 +2,11 @@ import React, { useState, useEffect } from 'react';
 import { ShoppingCart, Package, Calendar, DollarSign, Loader2, AlertCircle, CheckCircle, XCircle, Clock } from 'lucide-react';
 import * as ordersService from '../services/ordersService';
 
-const SupplierOrders: React.FC = () => {
+interface SupplierOrdersProps {
+  preSelectedItem?: {id: string; name: string; quantity: number} | null;
+}
+
+const SupplierOrders: React.FC<SupplierOrdersProps> = ({ preSelectedItem }) => {
   const [orders, setOrders] = useState<ordersService.OrderWithItems[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -11,6 +15,13 @@ const SupplierOrders: React.FC = () => {
   useEffect(() => {
     loadOrders();
   }, []);
+
+  useEffect(() => {
+    if (preSelectedItem) {
+      // כאן אפשר להוסיף לוגיקה לפתיחת מודל הזמנה חדשה עם הפריט הנבחר
+      console.log('פריט נבחר להזמנה:', preSelectedItem);
+    }
+  }, [preSelectedItem]);
 
   const loadOrders = async () => {
     try {
@@ -139,7 +150,21 @@ const SupplierOrders: React.FC = () => {
 
               {/* פריטי ההזמנה */}
               <div className="p-6">
-                <h4 className="font-semibold text-slate-700 mb-4">פריטים בהזמנה ({order.items.length})</h4>
+                <div className="flex items-center justify-between mb-4">
+                  <h4 className="font-semibold text-slate-700">פריטים בהזמנה ({order.items.length})</h4>
+                  {canAddToOrder(order.can_add_until) && order.status !== 'cancelled' && (
+                    <button
+                      className="bg-orange-600 text-white px-4 py-2 rounded-lg hover:bg-orange-700 transition-colors flex items-center gap-2 text-sm font-medium"
+                      onClick={() => {
+                        // פתיחת מודל להוספת פריטים להזמנה
+                        alert(`הוספת פריטים להזמנה #${order.order_number}`);
+                      }}
+                    >
+                      <Package size={16} />
+                      הוסף פריטים להזמנה
+                    </button>
+                  )}
+                </div>
                 <div className="space-y-2">
                   {order.items.map((item) => (
                     <div key={item.id} className="flex items-center justify-between p-3 bg-slate-50 rounded-lg">

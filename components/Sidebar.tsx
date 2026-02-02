@@ -63,9 +63,14 @@ const Sidebar: React.FC<SidebarProps> = ({ activeView, onViewChange }) => {
         transition-transform duration-300 ease-in-out
         ${isOpen ? 'translate-x-0' : 'translate-x-full md:translate-x-0'}
       `}>
-        <div className="p-6 flex items-center gap-3 border-b border-slate-800">
-          <UtensilsCrossed className="text-orange-500 w-8 h-8" />
-          <span className="text-xl font-bold tracking-tight">SmartRest</span>
+        <div className="p-6 border-b border-slate-800">
+          <div className="flex items-center gap-3 mb-3">
+            <UtensilsCrossed className="text-orange-500 w-8 h-8" />
+            <span className="text-xl font-bold tracking-tight">STEADY</span>
+          </div>
+          <div className="text-xs text-slate-500 mt-2">
+            v2.2.26.21.29
+          </div>
         </div>
         
         <nav className="flex-1 p-4 space-y-2 mt-4">
@@ -90,7 +95,7 @@ const Sidebar: React.FC<SidebarProps> = ({ activeView, onViewChange }) => {
         </nav>
 
         <div className="p-4 text-xs text-slate-500 border-t border-slate-800 text-center">
-          © 2026 SmartRest v1.0
+          © 2026 STEADY
         </div>
       </div>
     </>
