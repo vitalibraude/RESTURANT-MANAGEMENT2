@@ -173,8 +173,8 @@ const Inventory: React.FC<InventoryProps> = ({ onNavigateToOrders }) => {
           product_name: selectedOrderItem.name,
           quantity: orderFormData.quantity,
           unit: selectedOrderItem.unit,
-          price_per_unit: orderFormData.price,
-          inventory_item_id: selectedOrderItem.id
+          price_per_unit: orderFormData.price
+          // inventory_item_id מושמט כי ה-IDs במלאי הם mock ולא UUIDs אמיתיים
         }],
         canAddUntil
       );
