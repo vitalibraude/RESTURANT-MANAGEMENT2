@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Users, Plus, Edit, Trash2, DollarSign, Calendar, User, Loader2, AlertCircle } from 'lucide-react';
+import { Users, Plus, Edit, Trash2, Coins, Calendar, User, Loader2, AlertCircle } from 'lucide-react';
 import { supabase } from '../services/supabaseClient';
 
 interface Employee {
@@ -212,7 +212,7 @@ const Employees: React.FC = () => {
                 ₪{employees.length > 0 ? (employees.reduce((sum, e) => sum + e.hourly_rate, 0) / employees.length).toFixed(0) : 0}
               </p>
             </div>
-            <DollarSign size={40} className="opacity-80" />
+            <Coins size={40} className="opacity-80" />
           </div>
         </div>
       </div>

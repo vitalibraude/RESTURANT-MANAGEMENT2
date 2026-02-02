@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Calendar, Users, DollarSign, Download, Plus, X, ChevronLeft, ChevronRight, FileSpreadsheet } from 'lucide-react';
+import { Calendar, Users, Coins, Download, Plus, X, ChevronLeft, ChevronRight, FileSpreadsheet } from 'lucide-react';
 import { supabase } from '../services/supabaseClient';
 
 interface Employee {
@@ -336,7 +336,7 @@ const WorkLog: React.FC = () => {
           </div>
           <div className="bg-orange-50 p-4 rounded-xl">
             <div className="flex items-center gap-2 text-orange-600 mb-2">
-              <DollarSign size={20} />
+              <Coins size={20} />
               <span className="text-sm font-medium">סה״כ שכר</span>
             </div>
             <p className="text-2xl font-bold text-orange-900">
