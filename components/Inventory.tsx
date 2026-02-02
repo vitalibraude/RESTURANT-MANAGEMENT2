@@ -1,9 +1,11 @@
-
-import React, { useState } from 'react';
-import { Package, Plus, AlertCircle, Search, X, ChevronDown, ShoppingCart } from 'lucide-react';
+import React, { useState, useEffect } from 'react';
+import { Package, Plus, AlertCircle, Search, X, ChevronDown, ShoppingCart, Edit2 } from 'lucide-react';
 import { InventoryItem } from '../types';
+import * as suppliersService from '../services/suppliersService';
+import * as ordersService from '../services/ordersService';
 
 type OrderMode = 'manual' | 'semi-auto' | 'full-auto';
+type OrderActionType = 'immediate' | 'by-quantity' | 'by-supplier-dates' | 'next-week' | 'next-month';
 
 interface ExtendedInventoryItem extends InventoryItem {
   orderMode: OrderMode;
@@ -32,17 +34,22 @@ const mockInventory: ExtendedInventoryItem[] = [
 ];
 
 interface InventoryProps {
-  onImmediateOrder?: (item: {id: string; name: string; quantity: number}) => void;
+  onNavigateToOrders?: () => void;
 }
 
-const Inventory: React.FC<InventoryProps> = ({ onImmediateOrder }) => {
+const Inventory: React.FC<InventoryProps> = ({ onNavigateToOrders }) => {
   const [inventory, setInventory] = useState<ExtendedInventoryItem[]>(mockInventory);
-  const [allSuppliers, setAllSuppliers] = useState<string[]>(availableSuppliers);
+  const [allSuppliers, setAllSuppliers] = useState<suppliersService.SupplierWithProducts[]>([]);
   const [editingSuppliers, setEditingSuppliers] = useState<string | null>(null);
   const [newSupplier, setNewSupplier] = useState<string>('');
   const [openActionMenu, setOpenActionMenu] = useState<string | null>(null);
   const [showAddModal, setShowAddModal] = useState(false);
+  const [showOrderModal, setShowOrderModal] = useState(false);
+  const [showEditModal, setShowEditModal] = useState(false);
   const [editingItem, setEditingItem] = useState<ExtendedInventoryItem | null>(null);
+  const [selectedOrderItem, setSelectedOrderItem] = useState<ExtendedInventoryItem | null>(null);
+  const [orderActionType, setOrderActionType] = useState<OrderActionType | null>(null);
+  
   const [formData, setFormData] = useState({
     name: '',
     quantity: 0,
@@ -51,6 +58,26 @@ const Inventory: React.FC<InventoryProps> = ({ onImmediateOrder }) => {
     orderMode: 'manual' as OrderMode,
     suppliers: [] as string[]
   });
+
+  const [orderFormData, setOrderFormData] = useState({
+    supplierId: '',
+    quantity: 0,
+    price: 0,
+    notes: ''
+  });
+
+  useEffect(() => {
+    loadSuppliers();
+  }, []);
+
+  const loadSuppliers = async () => {
+    try {
+      const data = await suppliersService.getSuppliersWithProducts();
+      setAllSuppliers(data);
+    } catch (err) {
+      console.error('Error loading suppliers:', err);
+    }
+  };
 
   const handleOrderModeChange = (itemId: string, newMode: OrderMode) => {
     setInventory(prev => prev.map(item => 
@@ -74,9 +101,6 @@ const Inventory: React.FC<InventoryProps> = ({ onImmediateOrder }) => {
   };
 
   const addNewSupplier = (itemId: string) => {
-    if (newSupplier.trim() && !allSuppliers.includes(newSupplier.trim())) {
-      setAllSuppliers(prev => [...prev, newSupplier.trim()]);
-    }
     if (newSupplier.trim()) {
       toggleSupplier(itemId, newSupplier.trim());
       setNewSupplier('');
@@ -91,14 +115,298 @@ const Inventory: React.FC<InventoryProps> = ({ onImmediateOrder }) => {
     }
   };
 
-  const handleOrderAction = (itemId: string, action: string) => {
-    const item = inventory.find(i => i.id === itemId);
-    alert(`פעולה: ${action}\nפריט: ${item?.name}\nספקים: ${item?.suppliers.join(', ') || 'לא נבחרו'}`);
+  const calculateOrderQuantity = (item: ExtendedInventoryItem, actionType: OrderActionType): number => {
+    switch(actionType) {
+      case 'immediate':
+        // הזמנה מיידית - חוסר עד הסף
+        return Math.max(0, item.minThreshold - item.quantity);
+      case 'by-quantity':
+        // לפי כמות שנקבעה - פעמיים הסף
+        return item.minThreshold * 2;
+      case 'by-supplier-dates':
+      case 'next-week':
+        // להערכה שבועית
+        return item.minThreshold * 1.5;
+      case 'next-month':
+        // להערכה חודשית
+        return item.minThreshold * 4;
+      default:
+        return item.minThreshold;
+    }
+  };
+
+  const openOrderModal = (item: ExtendedInventoryItem, actionType: OrderActionType) => {
+    setSelectedOrderItem(item);
+    setOrderActionType(actionType);
+    const suggestedQuantity = calculateOrderQuantity(item, actionType);
+    
+    // מצא ספק מהרשימה של הפריט
+    const itemSupplier = allSuppliers.find(s => item.suppliers.includes(s.name));
+    const supplierProduct = itemSupplier?.products?.find(p => p.product_name.includes(item.name) || item.name.includes(p.product_name));
+    
+    setOrderFormData({
+      supplierId: itemSupplier?.id || '',
+      quantity: suggestedQuantity,
+      price: supplierProduct?.price || 0,
+      notes: ''
+    });
+    
+    setShowOrderModal(true);
     setOpenActionMenu(null);
+  };
+
+  const handleCreateOrder = async () => {
+    if (!selectedOrderItem || !orderFormData.supplierId || orderFormData.quantity <= 0) {
+      alert('אנא מלא את כל הפרטים');
+      return;
+    }
+
+    try {
+      // חישוב תאריך אחרון להוספה (7 ימים מהיום)
+      const canAddUntil = new Date();
+      canAddUntil.setDate(canAddUntil.getDate() + 7);
+
+      // יצירת ההזמנה
+      await ordersService.createSupplierOrder(
+        orderFormData.supplierId,
+        [{
+          product_name: selectedOrderItem.name,
+          quantity: orderFormData.quantity,
+          unit: selectedOrderItem.unit,
+          price_per_unit: orderFormData.price,
+          inventory_item_id: selectedOrderItem.id
+        }],
+        canAddUntil
+      );
+
+      // סגירת המודל
+      setShowOrderModal(false);
+      setSelectedOrderItem(null);
+      setOrderActionType(null);
+      setOrderFormData({ supplierId: '', quantity: 0, price: 0, notes: '' });
+
+      // הצגת הודעת הצלחה
+      alert('ההזמנה נוצרה בהצלחה!');
+
+      // מעבר לדף הזמנות מספקים
+      if (onNavigateToOrders) {
+        onNavigateToOrders();
+      }
+    } catch (err: any) {
+      alert('שגיאה ביצירת הזמנה: ' + err.message);
+      console.error('Error creating order:', err);
+    }
+  };
+
+  const openEditModal = (item: ExtendedInventoryItem) => {
+    setEditingItem(item);
+    setShowEditModal(true);
+  };
+
+  const handleEditItem = () => {
+    if (!editingItem) return;
+    
+    setInventory(prev => prev.map(item => 
+      item.id === editingItem.id ? editingItem : item
+    ));
+    
+    setShowEditModal(false);
+    setEditingItem(null);
+  };
+
+  const getOrderActionLabel = (actionType: OrderActionType): string => {
+    switch(actionType) {
+      case 'immediate': return 'הזמנה מיידית';
+      case 'by-quantity': return 'הזמנה לפי כמות';
+      case 'by-supplier-dates': return 'הזמנה לפי תאריכי ספק';
+      case 'next-week': return 'הזמנה לשבוע הבא';
+      case 'next-month': return 'הזמנה לחודש הבא';
+    }
   };
 
   return (
     <div className="space-y-6">
+      {/* Order Modal */}
+      {showOrderModal && selectedOrderItem && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-2xl shadow-2xl max-w-lg w-full p-6">
+            <div className="flex justify-between items-center mb-6">
+              <h3 className="text-xl font-bold text-slate-800">
+                {orderActionType && getOrderActionLabel(orderActionType)}
+              </h3>
+              <button onClick={() => setShowOrderModal(false)} className="text-slate-400 hover:text-slate-600">
+                <X size={24} />
+              </button>
+            </div>
+            
+            <div className="bg-blue-50 p-4 rounded-xl mb-6">
+              <p className="font-semibold text-blue-900">פריט: {selectedOrderItem.name}</p>
+              <p className="text-sm text-blue-700">מלאי נוכחי: {selectedOrderItem.quantity} {selectedOrderItem.unit}</p>
+              <p className="text-sm text-blue-700">סף מינימום: {selectedOrderItem.minThreshold} {selectedOrderItem.unit}</p>
+            </div>
+
+            <div className="space-y-4">
+              <div>
+                <label className="block text-sm font-medium text-slate-700 mb-2">בחר ספק *</label>
+                <select
+                  value={orderFormData.supplierId}
+                  onChange={(e) => {
+                    const supplier = allSuppliers.find(s => s.id === e.target.value);
+                    const product = supplier?.products?.find(p => 
+                      p.product_name.includes(selectedOrderItem.name) || 
+                      selectedOrderItem.name.includes(p.product_name)
+                    );
+                    setOrderFormData({
+                      ...orderFormData,
+                      supplierId: e.target.value,
+                      price: product?.price || orderFormData.price
+                    });
+                  }}
+                  className="w-full px-4 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-orange-500"
+                >
+                  <option value="">בחר ספק...</option>
+                  {allSuppliers
+                    .filter(s => selectedOrderItem.suppliers.includes(s.name))
+                    .map(supplier => (
+                      <option key={supplier.id} value={supplier.id}>{supplier.name}</option>
+                    ))}
+                </select>
+              </div>
+
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-sm font-medium text-slate-700 mb-2">כמות להזמנה *</label>
+                  <input
+                    type="number"
+                    step="0.1"
+                    value={orderFormData.quantity}
+                    onChange={(e) => setOrderFormData({...orderFormData, quantity: Number(e.target.value)})}
+                    className="w-full px-4 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-orange-500"
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-slate-700 mb-2">מחיר ליחידה *</label>
+                  <input
+                    type="number"
+                    step="0.01"
+                    value={orderFormData.price}
+                    onChange={(e) => setOrderFormData({...orderFormData, price: Number(e.target.value)})}
+                    className="w-full px-4 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-orange-500"
+                  />
+                </div>
+              </div>
+
+              <div className="bg-green-50 p-3 rounded-lg">
+                <p className="text-sm font-semibold text-green-900">
+                  סה"כ: ₪{(orderFormData.quantity * orderFormData.price).toFixed(2)}
+                </p>
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-slate-700 mb-2">הערות (אופציונלי)</label>
+                <textarea
+                  value={orderFormData.notes}
+                  onChange={(e) => setOrderFormData({...orderFormData, notes: e.target.value})}
+                  className="w-full px-4 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-orange-500"
+                  rows={3}
+                  placeholder="הערות נוספות..."
+                />
+              </div>
+            </div>
+
+            <div className="flex gap-3 mt-6">
+              <button
+                onClick={handleCreateOrder}
+                className="flex-1 bg-orange-600 text-white py-3 rounded-lg hover:bg-orange-700 font-semibold"
+              >
+                צור הזמנה
+              </button>
+              <button
+                onClick={() => setShowOrderModal(false)}
+                className="flex-1 bg-slate-200 text-slate-700 py-3 rounded-lg hover:bg-slate-300 font-semibold"
+              >
+                ביטול
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Edit Item Modal */}
+      {showEditModal && editingItem && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-2xl shadow-2xl max-w-md w-full p-6">
+            <div className="flex justify-between items-center mb-6">
+              <h3 className="text-xl font-bold text-slate-800">ערוך פריט מלאי</h3>
+              <button onClick={() => setShowEditModal(false)} className="text-slate-400 hover:text-slate-600">
+                <X size={24} />
+              </button>
+            </div>
+            <div className="space-y-4">
+              <div>
+                <label className="block text-sm font-medium text-slate-700 mb-1">שם הפריט</label>
+                <input
+                  type="text"
+                  value={editingItem.name}
+                  onChange={(e) => setEditingItem({...editingItem, name: e.target.value})}
+                  className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-orange-500"
+                />
+              </div>
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-sm font-medium text-slate-700 mb-1">כמות</label>
+                  <input
+                    type="number"
+                    value={editingItem.quantity}
+                    onChange={(e) => setEditingItem({...editingItem, quantity: Number(e.target.value)})}
+                    className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-orange-500"
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-slate-700 mb-1">יחידה</label>
+                  <select
+                    value={editingItem.unit}
+                    onChange={(e) => setEditingItem({...editingItem, unit: e.target.value})}
+                    className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-orange-500"
+                  >
+                    <option value="ק״ג">ק״ג</option>
+                    <option value="ליטר">ליטר</option>
+                    <option value="יחידות">יחידות</option>
+                    <option value="חבילות">חבילות</option>
+                  </select>
+                </div>
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-slate-700 mb-1">כמות מינימום</label>
+                <input
+                  type="number"
+                  value={editingItem.minThreshold}
+                  onChange={(e) => setEditingItem({...editingItem, minThreshold: Number(e.target.value)})}
+                  className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-orange-500"
+                />
+              </div>
+              <div className="flex gap-3 pt-4">
+                <button
+                  onClick={handleEditItem}
+                  className="flex-1 bg-orange-600 text-white py-2 rounded-lg hover:bg-orange-700 font-medium"
+                >
+                  שמור שינויים
+                </button>
+                <button
+                  onClick={() => {
+                    setShowEditModal(false);
+                    setEditingItem(null);
+                  }}
+                  className="flex-1 bg-slate-200 text-slate-700 py-2 rounded-lg hover:bg-slate-300 font-medium"
+                >
+                  ביטול
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* Add Item Modal */}
       {showAddModal && (
         <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
@@ -219,6 +527,7 @@ const Inventory: React.FC<InventoryProps> = ({ onImmediateOrder }) => {
                 <th className="p-3 md:p-4 font-semibold">סטטוס</th>
                 <th className="p-3 md:p-4 font-semibold">ספקים</th>
                 <th className="p-3 md:p-4 font-semibold">הזמנת מלאי</th>
+                <th className="p-3 md:p-4 font-semibold">מצב הזמנה</th>
                 <th className="p-3 md:p-4 font-semibold">פעולות</th>
               </tr>
             </thead>
@@ -272,14 +581,14 @@ const Inventory: React.FC<InventoryProps> = ({ onImmediateOrder }) => {
                             </div>
                             <div className="space-y-1 max-h-48 overflow-y-auto mb-2">
                               {allSuppliers.map(supplier => (
-                                <label key={supplier} className="flex items-center gap-2 p-1.5 hover:bg-slate-50 rounded cursor-pointer">
+                                <label key={supplier.id} className="flex items-center gap-2 p-1.5 hover:bg-slate-50 rounded cursor-pointer">
                                   <input
                                     type="checkbox"
-                                    checked={item.suppliers.includes(supplier)}
-                                    onChange={() => toggleSupplier(item.id, supplier)}
+                                    checked={item.suppliers.includes(supplier.name)}
+                                    onChange={() => toggleSupplier(item.id, supplier.name)}
                                     className="rounded border-slate-300 text-orange-600 focus:ring-orange-500"
                                   />
-                                  <span className="text-sm text-slate-700">{supplier}</span>
+                                  <span className="text-sm text-slate-700">{supplier.name}</span>
                                 </label>
                               ))}
                             </div>
@@ -320,21 +629,21 @@ const Inventory: React.FC<InventoryProps> = ({ onImmediateOrder }) => {
                           <div className="absolute z-20 left-0 mt-1 bg-white border border-slate-200 rounded-lg shadow-xl min-w-[220px]">
                             <div className="py-1">
                               <button
-                                onClick={() => handleOrderAction(item.id, 'הזמנה מיידית')}
+                                onClick={() => openOrderModal(item, 'immediate')}
                                 className="w-full text-right px-4 py-2 text-sm text-slate-700 hover:bg-orange-50 hover:text-orange-700 transition-colors flex items-center gap-2"
                               >
                                 <div className="w-2 h-2 rounded-full bg-red-500"></div>
                                 בצע הזמנה מיידית
                               </button>
                               <button
-                                onClick={() => handleOrderAction(item.id, 'הזמנה לפי כמות שנקבעה')}
+                                onClick={() => openOrderModal(item, 'by-quantity')}
                                 className="w-full text-right px-4 py-2 text-sm text-slate-700 hover:bg-orange-50 hover:text-orange-700 transition-colors flex items-center gap-2"
                               >
                                 <div className="w-2 h-2 rounded-full bg-blue-500"></div>
                                 בצע הזמנה לפי כמות שנקבעה
                               </button>
                               <button
-                                onClick={() => handleOrderAction(item.id, 'הזמנה לפי תאריכי הספק')}
+                                onClick={() => openOrderModal(item, 'by-supplier-dates')}
                                 className="w-full text-right px-4 py-2 text-sm text-slate-700 hover:bg-orange-50 hover:text-orange-700 transition-colors flex items-center gap-2"
                               >
                                 <div className="w-2 h-2 rounded-full bg-purple-500"></div>
@@ -342,14 +651,14 @@ const Inventory: React.FC<InventoryProps> = ({ onImmediateOrder }) => {
                               </button>
                               <div className="border-t border-slate-100 my-1"></div>
                               <button
-                                onClick={() => handleOrderAction(item.id, 'הזמנה לשבוע הבא')}
+                                onClick={() => openOrderModal(item, 'next-week')}
                                 className="w-full text-right px-4 py-2 text-sm text-slate-700 hover:bg-orange-50 hover:text-orange-700 transition-colors flex items-center gap-2"
                               >
                                 <div className="w-2 h-2 rounded-full bg-green-500"></div>
                                 בצע הזמנה לשבוע הבא
                               </button>
                               <button
-                                onClick={() => handleOrderAction(item.id, 'הזמנה לחודש הבא')}
+                                onClick={() => openOrderModal(item, 'next-month')}
                                 className="w-full text-right px-4 py-2 text-sm text-slate-700 hover:bg-orange-50 hover:text-orange-700 transition-colors flex items-center gap-2"
                               >
                                 <div className="w-2 h-2 rounded-full bg-yellow-500"></div>
@@ -372,18 +681,14 @@ const Inventory: React.FC<InventoryProps> = ({ onImmediateOrder }) => {
                       </select>
                     </td>
                     <td className="p-3 md:p-4">
-                      <div className="flex gap-2">
-                        {onImmediateOrder && (
-                          <button 
-                            className="text-green-600 hover:text-green-700 font-medium text-sm flex items-center gap-1"
-                            onClick={() => onImmediateOrder({id: item.id, name: item.name, quantity: item.quantity})}
-                            title="הזמנה מיידית"
-                          >
-                            <ShoppingCart size={16} />
-                          </button>
-                        )}
-                        <button className="text-orange-600 hover:underline text-sm font-medium">ערוך</button>
-                      </div>
+                      <button 
+                        onClick={() => openEditModal(item)}
+                        className="text-orange-600 hover:bg-orange-50 p-2 rounded-lg transition-colors flex items-center gap-1"
+                        title="ערוך פריט"
+                      >
+                        <Edit2 size={16} />
+                        <span className="text-sm font-medium">ערוך</span>
+                      </button>
                     </td>
                   </tr>
                 );

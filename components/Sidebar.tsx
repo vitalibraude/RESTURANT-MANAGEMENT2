@@ -71,7 +71,7 @@ const Sidebar: React.FC<SidebarProps> = ({ activeView, onViewChange }) => {
             <span className="text-xl font-bold tracking-tight">STEADY</span>
           </div>
           <div className="text-xs text-slate-500 mt-2">
-            v2.2.26.23.03
+            v2.2.26.23.18
           </div>
         </div>
         

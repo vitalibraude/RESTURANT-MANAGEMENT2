@@ -16,10 +16,8 @@ import { CreditCard, Utensils } from 'lucide-react';
 
 const App: React.FC = () => {
   const [currentView, setCurrentView] = useState<View>('dashboard');
-  const [selectedInventoryItem, setSelectedInventoryItem] = useState<{id: string; name: string; quantity: number} | null>(null);
 
-  const handleImmediateOrder = (item: {id: string; name: string; quantity: number}) => {
-    setSelectedInventoryItem(item);
+  const handleNavigateToOrders = () => {
     setCurrentView('supplier-orders');
   };
 
@@ -28,7 +26,7 @@ const App: React.FC = () => {
       case 'dashboard':
         return <Dashboard />;
       case 'inventory':
-        return <Inventory onImmediateOrder={handleImmediateOrder} />;
+        return <Inventory onNavigateToOrders={handleNavigateToOrders} />;
       case 'messaging':
         return <Messaging />;
       case 'orders':
@@ -38,7 +36,7 @@ const App: React.FC = () => {
       case 'suppliers':
         return <Suppliers />;
       case 'supplier-orders':
-        return <SupplierOrders preSelectedItem={selectedInventoryItem} />;
+        return <SupplierOrders />;
       case 'employees':
         return <Employees />;
       case 'work-log':
