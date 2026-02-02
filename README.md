@@ -31,7 +31,7 @@
 
 ## 🌐 GitHub Pages
 
-האפליקציה מפורסמת ב: https://vitalibraude.github.io/RESTURANT-MANAGEMENT/
+האפליקציה תהיה זמינה בקרוב ב: https://vitalibraude.github.io/RESTURANT-MANAGEMENT/
 
 ## ✨ תכונות
 
