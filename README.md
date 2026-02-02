@@ -17,17 +17,12 @@
    npm install
    ```
 
-2. הגדר את ה-`GEMINI_API_KEY` בקובץ `.env.local`:
-   ```
-   GEMINI_API_KEY=your_api_key_here
-   ```
-
-3. הרץ את האפליקציה:
+2. הרץ את האפליקציה:
    ```bash
    npm run dev
    ```
 
-4. פתח בדפדפן: `http://localhost:3001`
+3. פתח בדפדפן: `http://localhost:3001`
 
 ## 🌐 GitHub Pages
 
@@ -38,7 +33,6 @@
 - 📊 ניהול מלאי חכם
 - 💬 מערכת הודעות
 - 📈 דשבורד ניתוח נתונים
-- 🤖 אינטגרציה עם Gemini AI
 
 ---
 
