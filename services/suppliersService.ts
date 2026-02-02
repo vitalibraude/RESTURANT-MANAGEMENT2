@@ -115,3 +115,15 @@ export async function getSupplierProducts(supplierId: string): Promise<SupplierP
   if (error) throw error;
   return data;
 }
+
+// הוספת ספק חדש
+export async function addSupplier(supplier: Omit<Supplier, 'id' | 'created_at'>) {
+  const { data, error } = await supabase
+    .from('suppliers')
+    .insert([supplier])
+    .select()
+    .single();
+
+  if (error) throw error;
+  return data;
+}

@@ -10,6 +10,13 @@ const Suppliers: React.FC = () => {
   const [error, setError] = useState<string | null>(null);
   const [selectedSupplier, setSelectedSupplier] = useState<string | null>(null);
   const [editingProduct, setEditingProduct] = useState<string | null>(null);
+  const [showAddSupplierModal, setShowAddSupplierModal] = useState(false);
+  const [newSupplierData, setNewSupplierData] = useState({
+    name: '',
+    contact_person: '',
+    phone: '',
+    email: ''
+  });
 
   useEffect(() => {
     loadSuppliers();
@@ -36,6 +43,22 @@ const Suppliers: React.FC = () => {
       loadSuppliers();
     } catch (err: any) {
       alert('שגיאה במחיקת מוצר: ' + err.message);
+    }
+  };
+
+  const handleAddSupplier = async () => {
+    if (!newSupplierData.name.trim()) {
+      alert('יש להזין שם ספק');
+      return;
+    }
+
+    try {
+      await suppliersService.addSupplier(newSupplierData);
+      setShowAddSupplierModal(false);
+      setNewSupplierData({ name: '', contact_person: '', phone: '', email: '' });
+      loadSuppliers();
+    } catch (err: any) {
+      alert('שגיאה בהוספת ספק: ' + err.message);
     }
   };
 
@@ -70,6 +93,13 @@ const Suppliers: React.FC = () => {
           <h2 className="text-2xl font-bold text-slate-800">ניהול ספקים</h2>
           <p className="text-slate-500">נהל ספקים, מוצרים, מחירים וזמני הזמנה.</p>
         </div>
+        <button
+          onClick={() => setShowAddSupplierModal(true)}
+          className="bg-orange-600 text-white px-6 py-3 rounded-xl hover:bg-orange-700 flex items-center gap-2 shadow-lg transition-all"
+        >
+          <Plus size={20} />
+          הוסף ספק
+        </button>
       </div>
 
       <div className="grid gap-6">
@@ -106,7 +136,10 @@ const Suppliers: React.FC = () => {
                     </div>
                   </div>
                 </div>
-                <button className="text-orange-600 hover:bg-orange-50 p-2 rounded-lg transition-colors">
+                <button 
+                  onClick={() => alert('עריכת ספק בפיתוח...')}
+                  className="text-orange-600 hover:bg-orange-50 p-2 rounded-lg transition-colors"
+                >
                   <Edit2 size={18} />
                 </button>
               </div>
@@ -119,7 +152,10 @@ const Suppliers: React.FC = () => {
                   <Package size={18} />
                   מוצרים ({supplier.products?.length || 0})
                 </h4>
-                <button className="text-sm bg-orange-600 text-white px-4 py-2 rounded-lg hover:bg-orange-700 flex items-center gap-2">
+                <button 
+                  onClick={() => alert(`הוספת מוצר לספק ${supplier.name} בפיתוח...`)}
+                  className="text-sm bg-orange-600 text-white px-4 py-2 rounded-lg hover:bg-orange-700 flex items-center gap-2"
+                >
                   <Plus size={16} />
                   הוסף מוצר
                 </button>
@@ -134,7 +170,6 @@ const Suppliers: React.FC = () => {
                           <div className="flex items-center gap-3 mb-2">
                             <h5 className="font-semibold text-slate-800">{product.product_name}</h5>
                             <span className="bg-green-100 text-green-700 text-xs px-2 py-1 rounded-full font-medium">
-                              <DollarSign size={12} className="inline" />
                               ₪{product.price} / {product.unit}
                             </span>
                           </div>
@@ -153,7 +188,7 @@ const Suppliers: React.FC = () => {
                         
                         <div className="flex gap-2">
                           <button 
-                            onClick={() => setEditingProduct(product.id)}
+                            onClick={() => alert(`עריכת מוצר: ${product.product_name}\nמחיר: ₪${product.price}\nפונקציה זו בפיתוח...`)}
                             className="text-blue-600 hover:bg-blue-50 p-2 rounded-lg transition-colors"
                           >
                             <Edit2 size={16} />
@@ -185,6 +220,79 @@ const Suppliers: React.FC = () => {
           <Store size={64} className="mx-auto text-slate-300 mb-4" />
           <h3 className="text-xl font-semibold text-slate-600 mb-2">אין ספקים במערכת</h3>
           <p className="text-slate-400">הרץ את קובץ suppliers-schema.sql כדי להוסיף ספקים</p>
+        </div>
+      )}
+
+      {/* דיאלוג הוספת ספק */}
+      {showAddSupplierModal && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50" onClick={() => setShowAddSupplierModal(false)}>
+          <div className="bg-white rounded-2xl p-8 max-w-md w-full mx-4 shadow-2xl" onClick={(e) => e.stopPropagation()}>
+            <h3 className="text-2xl font-bold text-slate-800 mb-6">הוסף ספק חדש</h3>
+            
+            <div className="space-y-4">
+              <div>
+                <label className="block text-sm font-medium text-slate-700 mb-2">שם הספק *</label>
+                <input
+                  type="text"
+                  value={newSupplierData.name}
+                  onChange={(e) => setNewSupplierData({...newSupplierData, name: e.target.value})}
+                  className="w-full px-4 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-orange-500"
+                  placeholder="למשל: סנפרוסט"
+                />
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-slate-700 mb-2">איש קשר</label>
+                <input
+                  type="text"
+                  value={newSupplierData.contact_person}
+                  onChange={(e) => setNewSupplierData({...newSupplierData, contact_person: e.target.value})}
+                  className="w-full px-4 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-orange-500"
+                  placeholder="שם איש הקשר"
+                />
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-slate-700 mb-2">טלפון</label>
+                <input
+                  type="tel"
+                  value={newSupplierData.phone}
+                  onChange={(e) => setNewSupplierData({...newSupplierData, phone: e.target.value})}
+                  className="w-full px-4 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-orange-500"
+                  placeholder="054-1234567"
+                />
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-slate-700 mb-2">אימייל</label>
+                <input
+                  type="email"
+                  value={newSupplierData.email}
+                  onChange={(e) => setNewSupplierData({...newSupplierData, email: e.target.value})}
+                  className="w-full px-4 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-orange-500"
+                  placeholder="email@example.com"
+                />
+              </div>
+            </div>
+
+            <div className="flex gap-3 mt-6">
+              <button
+                onClick={handleAddSupplier}
+                className="flex-1 bg-orange-600 text-white px-6 py-3 rounded-lg hover:bg-orange-700 font-semibold transition-colors"
+              >
+                הוסף
+              </button>
+              <button
+                onClick={() => {
+                  setShowAddSupplierModal(false);
+                  setNewSupplierData({ name: '', contact_person: '', phone: '', email: '' });
+                }}
+                className="flex-1 bg-slate-200 text-slate-700 px-6 py-3 rounded-lg hover:bg-slate-300 font-semibold transition-colors"
+              >
+                ביטול
+              </button>
+            </div>
+          </div>
         </div>
       )}
     </div>
