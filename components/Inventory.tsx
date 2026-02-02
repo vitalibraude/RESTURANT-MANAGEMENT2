@@ -99,12 +99,101 @@ const Inventory: React.FC<InventoryProps> = ({ onImmediateOrder }) => {
 
   return (
     <div className="space-y-6">
+      {/* Add Item Modal */}
+      {showAddModal && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-2xl shadow-2xl max-w-md w-full p-6">
+            <div className="flex justify-between items-center mb-6">
+              <h3 className="text-xl font-bold text-slate-800">הוסף פריט מלאי חדש</h3>
+              <button onClick={() => setShowAddModal(false)} className="text-slate-400 hover:text-slate-600">
+                <X size={24} />
+              </button>
+            </div>
+            <div className="space-y-4">
+              <div>
+                <label className="block text-sm font-medium text-slate-700 mb-1">שם הפריט</label>
+                <input
+                  type="text"
+                  value={formData.name}
+                  onChange={(e) => setFormData({...formData, name: e.target.value})}
+                  className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-orange-500"
+                  placeholder="לדוגמה: עגבניות"
+                />
+              </div>
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-sm font-medium text-slate-700 mb-1">כמות</label>
+                  <input
+                    type="number"
+                    value={formData.quantity}
+                    onChange={(e) => setFormData({...formData, quantity: Number(e.target.value)})}
+                    className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-orange-500"
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-slate-700 mb-1">יחידה</label>
+                  <select
+                    value={formData.unit}
+                    onChange={(e) => setFormData({...formData, unit: e.target.value})}
+                    className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-orange-500"
+                  >
+                    <option value="ק״ג">ק״ג</option>
+                    <option value="ליטר">ליטר</option>
+                    <option value="יחידות">יחידות</option>
+                    <option value="חבילות">חבילות</option>
+                  </select>
+                </div>
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-slate-700 mb-1">כמות מינימום</label>
+                <input
+                  type="number"
+                  value={formData.minThreshold}
+                  onChange={(e) => setFormData({...formData, minThreshold: Number(e.target.value)})}
+                  className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-orange-500"
+                />
+              </div>
+              <div className="flex gap-3 pt-4">
+                <button
+                  onClick={() => {
+                    const newItem: ExtendedInventoryItem = {
+                      id: String(inventory.length + 1),
+                      name: formData.name,
+                      quantity: formData.quantity,
+                      unit: formData.unit,
+                      minThreshold: formData.minThreshold,
+                      orderMode: 'manual',
+                      suppliers: []
+                    };
+                    setInventory([...inventory, newItem]);
+                    setShowAddModal(false);
+                    setFormData({ name: '', quantity: 0, unit: 'ק״ג', minThreshold: 0, orderMode: 'manual', suppliers: [] });
+                  }}
+                  className="flex-1 bg-orange-600 text-white py-2 rounded-lg hover:bg-orange-700 font-medium"
+                >
+                  הוסף
+                </button>
+                <button
+                  onClick={() => setShowAddModal(false)}
+                  className="flex-1 bg-slate-200 text-slate-700 py-2 rounded-lg hover:bg-slate-300 font-medium"
+                >
+                  ביטול
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+      
       <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
         <div>
           <h2 className="text-2xl font-bold text-slate-800">ניהול מלאי</h2>
           <p className="text-slate-500">עקוב אחר חומרי הגלם ונהל הזמנות ספקים.</p>
         </div>
-        <button className="bg-orange-600 text-white px-6 py-2 rounded-xl flex items-center gap-2 hover:bg-orange-700 transition-colors shadow-lg">
+        <button 
+          onClick={() => setShowAddModal(true)}
+          className="bg-orange-600 text-white px-6 py-2 rounded-xl flex items-center gap-2 hover:bg-orange-700 transition-colors shadow-lg"
+        >
           <Plus size={20} />
           <span>הוסף פריט מלאי</span>
         </button>
