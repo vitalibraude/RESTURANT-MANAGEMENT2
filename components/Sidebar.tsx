@@ -9,7 +9,8 @@ import {
   UtensilsCrossed,
   Menu,
   X,
-  Store
+  Store,
+  ShoppingCart
 } from 'lucide-react';
 import { View } from '../types';
 
@@ -26,6 +27,7 @@ const Sidebar: React.FC<SidebarProps> = ({ activeView, onViewChange }) => {
     { id: 'orders', label: 'הזמנות ומכירות', icon: ShoppingBag },
     { id: 'inventory', label: 'ניהול מלאי', icon: Package },
     { id: 'suppliers', label: 'ספקים', icon: Store },
+    { id: 'supplier-orders', label: 'הזמנות מספקים', icon: ShoppingCart },
     { id: 'finance', label: 'כספים וסליקה', icon: CreditCard },
     { id: 'messaging', label: 'הודעות ללקוחות', icon: MessageSquare },
   ];

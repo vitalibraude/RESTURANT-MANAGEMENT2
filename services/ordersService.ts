@@ -74,3 +74,103 @@ export function subscribeToOrders(callback: (order: Order) => void) {
     subscription.unsubscribe();
   };
 }
+
+// ====== הזמנות מספקים ======
+
+export interface SupplierOrder {
+  id: string;
+  order_number: number;
+  supplier_id: string;
+  supplier_name?: string;
+  total_cost: number;
+  order_date: string;
+  can_add_until: string;
+  status: 'pending' | 'confirmed' | 'received' | 'cancelled';
+  notes?: string;
+  created_at?: string;
+  updated_at?: string;
+}
+
+export interface OrderItem {
+  id: string;
+  order_id: string;
+  inventory_item_id?: string;
+  product_name: string;
+  quantity: number;
+  unit: string;
+  price_per_unit: number;
+  total_price?: number;
+}
+
+export interface OrderWithItems extends SupplierOrder {
+  items: OrderItem[];
+}
+
+// יצירת הזמנה חדשה
+export async function createSupplierOrder(
+  supplierId: string,
+  items: Omit<OrderItem, 'id' | 'order_id'>[],
+  canAddUntil: Date
+): Promise<SupplierOrder> {
+  const totalCost = items.reduce((sum, item) => sum + (item.quantity * item.price_per_unit), 0);
+
+  const { data: order, error: orderError } = await supabase
+    .from('supplier_orders')
+    .insert([{
+      supplier_id: supplierId,
+      total_cost: totalCost,
+      can_add_until: canAddUntil.toISOString().split('T')[0],
+      status: 'pending'
+    }])
+    .select()
+    .single();
+
+  if (orderError) throw orderError;
+
+  const orderItems = items.map(item => ({
+    order_id: order.id,
+    ...item
+  }));
+
+  const { error: itemsError } = await supabase
+    .from('supplier_order_items')
+    .insert(orderItems);
+
+  if (itemsError) throw itemsError;
+
+  return order;
+}
+
+// קבלת כל ההזמנות עם הספקים
+export async function getSupplierOrders(): Promise<OrderWithItems[]> {
+  const { data: orders, error: ordersError } = await supabase
+    .from('supplier_orders')
+    .select(`
+      *,
+      suppliers (
+        id,
+        name
+      )
+    `)
+    .order('order_number', { ascending: false });
+
+  if (ordersError) throw ordersError;
+
+  const ordersWithItems = await Promise.all(
+    orders.map(async (order) => {
+      const { data: items } = await supabase
+        .from('supplier_order_items')
+        .select('*')
+        .eq('order_id', order.id);
+
+      return {
+        ...order,
+        supplier_name: (order as any).suppliers?.name,
+        items: items || []
+      };
+    })
+  );
+
+  return ordersWithItems;
+}
+

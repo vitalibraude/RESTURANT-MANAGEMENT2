@@ -2,6 +2,7 @@
 import React, { useState, useEffect } from 'react';
 import { Package, Plus, AlertCircle, Search, X, ChevronDown, ShoppingCart, Loader2 } from 'lucide-react';
 import * as inventoryService from '../services/inventoryService';
+import * as ordersService from '../services/ordersService';
 
 type OrderMode = 'manual' | 'semi-auto' | 'full-auto';
 
@@ -20,6 +21,9 @@ const Inventory: React.FC = () => {
   const [allSuppliers, setAllSuppliers] = useState<Array<{ id: string; name: string }>>([]);
   const [editingSuppliers, setEditingSuppliers] = useState<string | null>(null);
   const [newSupplier, setNewSupplier] = useState<string>('');
+  const [selectedActions, setSelectedActions] = useState<Record<string, string>>({});
+  const [orderDates, setOrderDates] = useState<Record<string, Date>>({});
+  const [showOrderSummary, setShowOrderSummary] = useState(false);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
@@ -144,13 +148,81 @@ const Inventory: React.FC = () => {
   };
 
   const handleEditAction = (itemId: string, action: 'immediate' | 'supplier-schedule') => {
-    const item = inventory.find(i => i.id === itemId);
-    const supplierNames = item?.suppliers?.map(s => s.name).join(', ') || 'לא נבחרו';
-    if (action === 'immediate') {
-      alert(`הזמנה מיידית עבור: ${item?.name}\nספקים: ${supplierNames}`);
-    } else {
-      alert(`הזמנה בהתאם ללוז הספק עבור: ${item?.name}\nספקים: ${supplierNames}`);
+    console.log('Action selected:', itemId, action);
+  };
+
+  const handlePlaceOrder = () => {
+    const itemsToOrder = Object.keys(selectedActions).filter(id => selectedActions[id]);
+    if (itemsToOrder.length === 0) {
+      alert('לא נבחרו פריטים להזמנה. אנא בחר פעולה לפחות לפריט אחד.');
+      return;
     }
+    setShowOrderSummary(true);
+  };
+
+  const confirmOrder = async () => {
+    try {
+      // קיבוץ פריטים לפי ספקים
+      const ordersBySupplier: Record<string, any[]> = {};
+      
+      Object.keys(selectedActions).forEach(itemId => {
+        if (!selectedActions[itemId]) return;
+        
+        const item = inventory.find(i => i.id === itemId);
+        if (!item || !item.suppliers || item.suppliers.length === 0) return;
+        
+        // נניח שנשתמש בספק הראשון
+        const supplier = item.suppliers[0];
+        
+        if (!ordersBySupplier[supplier.id]) {
+          ordersBySupplier[supplier.id] = [];
+        }
+        
+        ordersBySupplier[supplier.id].push({
+          inventory_item_id: itemId,
+          product_name: item.name,
+          quantity: item.min_threshold - item.quantity + 5, // הזמנה עד סף + מעט מעבר
+          unit: item.unit,
+          price_per_unit: 10.0 // ברירת מחדל - צריך להוסיף מחירון לספקים
+        });
+      });
+      
+      // יצירת הזמנה לכל ספק
+      const canAddUntil = new Date();
+      canAddUntil.setDate(canAddUntil.getDate() + 7); // שבוע להוספה
+      
+      for (const supplierId in ordersBySupplier) {
+        await ordersService.createSupplierOrder(
+          supplierId,
+          ordersBySupplier[supplierId],
+          canAddUntil
+        );
+      }
+      
+      // עדכון תאריכי הגעה
+      const now = new Date();
+      const newOrderDates: Record<string, Date> = {};
+      Object.keys(selectedActions).forEach(id => {
+        if (selectedActions[id]) {
+          const arrivalDate = new Date(now);
+          arrivalDate.setDate(arrivalDate.getDate() + 3);
+          newOrderDates[id] = arrivalDate;
+        }
+      });
+      setOrderDates(prev => ({ ...prev, ...newOrderDates }));
+      setShowOrderSummary(false);
+      alert('ההזמנה יצאה והתקבל מספר הזמנה!');
+    } catch (err: any) {
+      alert('שגיאה ביצירת ההזמנה: ' + err.message);
+    }
+  };
+
+  const getDaysUntilArrival = (itemId: string): number | null => {
+    const orderDate = orderDates[itemId];
+    if (!orderDate) return null;
+    const now = new Date();
+    const diff = new Date(orderDate).getTime() - now.getTime();
+    return Math.ceil(diff / (1000 * 60 * 60 * 24));
   };
 
   if (loading) {
@@ -184,13 +256,22 @@ const Inventory: React.FC = () => {
           <h2 className="text-2xl font-bold text-slate-800">ניהול מלאי</h2>
           <p className="text-slate-500">עקוב אחר חומרי הגלם ונהל הזמנות ספקים.</p>
         </div>
-        <button 
-          onClick={addNewInventoryItem}
-          className="bg-orange-600 text-white px-6 py-2 rounded-xl flex items-center gap-2 hover:bg-orange-700 transition-colors shadow-lg"
-        >
-          <Plus size={20} />
-          <span>הוסף פריט מלאי</span>
-        </button>
+        <div className="flex gap-3">
+          <button 
+            onClick={handlePlaceOrder}
+            className="bg-green-600 text-white px-8 py-3 rounded-xl hover:bg-green-700 flex items-center gap-2 shadow-lg font-semibold transition-colors"
+          >
+            <ShoppingCart size={20} />
+            ביצוע הזמנה כעת
+          </button>
+          <button 
+            onClick={addNewInventoryItem}
+            className="bg-orange-600 text-white px-6 py-3 rounded-xl flex items-center gap-2 hover:bg-orange-700 transition-colors shadow-lg"
+          >
+            <Plus size={20} />
+            <span>הוסף פריט מלאי</span>
+          </button>
+        </div>
       </div>
 
       <div className="bg-white rounded-2xl shadow-sm border border-slate-100 overflow-hidden">
@@ -213,8 +294,7 @@ const Inventory: React.FC = () => {
                 <th className="p-3 md:p-4 font-semibold">סטטוס</th>
                 <th className="p-3 md:p-4 font-semibold">ספקים</th>
                 <th className="p-3 md:p-4 font-semibold">הזמנת מלאי</th>
-                <th className="p-3 md:p-4 font-semibold">פעולות</th>
-              </tr>
+                <th className="p-3 md:p-4 font-semibold">פעולות</th>                <th className="p-3 md:p-4 font-semibold">סטטוס הזמנה</th>              </tr>
             </thead>
             <tbody className="divide-y divide-slate-50">
               {inventory.map((item) => {
@@ -313,10 +393,12 @@ const Inventory: React.FC = () => {
                     </td>
                     <td className="p-3 md:p-4">
                       <select
+                        value={selectedActions[item.id] || ''}
                         onChange={(e) => {
-                          if (e.target.value) {
-                            handleEditAction(item.id, e.target.value as 'immediate' | 'supplier-schedule');
-                            e.target.value = '';
+                          const value = e.target.value;
+                          if (value) {
+                            setSelectedActions(prev => ({ ...prev, [item.id]: value }));
+                            handleEditAction(item.id, value as 'immediate' | 'supplier-schedule');
                           }
                         }}
                         className="px-3 py-1.5 rounded-lg border border-orange-200 bg-orange-50 text-orange-700 text-xs font-medium cursor-pointer transition-colors hover:opacity-80 focus:outline-none focus:ring-2 focus:ring-orange-500"
@@ -326,6 +408,15 @@ const Inventory: React.FC = () => {
                         <option value="supplier-schedule">הזמן בהתאם ללוז הספק</option>
                       </select>
                     </td>
+                    <td className="p-3 md:p-4 text-center">
+                      {getDaysUntilArrival(item.id) !== null ? (
+                        <span className="inline-flex items-center px-3 py-1 rounded-full text-xs font-medium bg-blue-100 text-blue-700">
+                          ההזמנה תגיע עוד {getDaysUntilArrival(item.id)} ימים
+                        </span>
+                      ) : (
+                        <span className="text-slate-400 text-xs">-</span>
+                      )}
+                    </td>
                   </tr>
                 );
               })}
@@ -333,6 +424,57 @@ const Inventory: React.FC = () => {
           </table>
         </div>
       </div>
+
+      {/* דיאלוג סיכום הזמנה */}
+      {showOrderSummary && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50" onClick={() => setShowOrderSummary(false)}>
+          <div className="bg-white rounded-2xl p-8 max-w-2xl w-full mx-4 shadow-2xl max-h-[80vh] overflow-y-auto" onClick={(e) => e.stopPropagation()}>
+            <h3 className="text-2xl font-bold text-slate-800 mb-6">סיכום הזמנה</h3>
+            
+            <div className="space-y-3 mb-6">
+              {Object.keys(selectedActions).filter(id => selectedActions[id]).map(itemId => {
+                const item = inventory.find(i => i.id === itemId);
+                if (!item) return null;
+                
+                return (
+                  <div key={itemId} className="flex items-center justify-between p-4 bg-slate-50 rounded-xl">
+                    <div className="flex-1">
+                      <h4 className="font-semibold text-slate-800">{item.name}</h4>
+                      <p className="text-sm text-slate-600">
+                        כמות נוכחית: {item.quantity} {item.unit} | 
+                        סף מינימום: {item.min_threshold} {item.unit}
+                      </p>
+                      <p className="text-xs text-orange-600 mt-1">
+                        {selectedActions[itemId] === 'immediate' ? '⚡ הזמנה מיידית' : '📅 הזמנה בהתאם ללוז הספק'}
+                      </p>
+                    </div>
+                    <div className="text-left">
+                      <span className="inline-flex items-center px-3 py-1 rounded-full text-xs font-medium bg-green-100 text-green-700">
+                        יגיע בעוד 3 ימים
+                      </span>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+
+            <div className="flex gap-3">
+              <button
+                onClick={confirmOrder}
+                className="flex-1 bg-green-600 text-white px-6 py-3 rounded-lg hover:bg-green-700 font-semibold transition-colors"
+              >
+                אישור והזמנה
+              </button>
+              <button
+                onClick={() => setShowOrderSummary(false)}
+                className="flex-1 bg-slate-200 text-slate-700 px-6 py-3 rounded-lg hover:bg-slate-300 font-semibold transition-colors"
+              >
+                ביטול
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };
