@@ -8,7 +8,8 @@ import {
   MessageSquare,
   UtensilsCrossed,
   Menu,
-  X
+  X,
+  Store
 } from 'lucide-react';
 import { View } from '../types';
 
@@ -24,6 +25,7 @@ const Sidebar: React.FC<SidebarProps> = ({ activeView, onViewChange }) => {
     { id: 'dashboard', label: 'לוח בקרה', icon: LayoutDashboard },
     { id: 'orders', label: 'הזמנות ומכירות', icon: ShoppingBag },
     { id: 'inventory', label: 'ניהול מלאי', icon: Package },
+    { id: 'suppliers', label: 'ספקים', icon: Store },
     { id: 'finance', label: 'כספים וסליקה', icon: CreditCard },
     { id: 'messaging', label: 'הודעות ללקוחות', icon: MessageSquare },
   ];

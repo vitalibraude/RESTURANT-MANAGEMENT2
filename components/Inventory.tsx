@@ -1,71 +1,122 @@
 
-import React, { useState } from 'react';
-import { Package, Plus, AlertCircle, Search, X, ChevronDown, ShoppingCart } from 'lucide-react';
-import { InventoryItem } from '../types';
+import React, { useState, useEffect } from 'react';
+import { Package, Plus, AlertCircle, Search, X, ChevronDown, ShoppingCart, Loader2 } from 'lucide-react';
+import * as inventoryService from '../services/inventoryService';
 
 type OrderMode = 'manual' | 'semi-auto' | 'full-auto';
 
-interface ExtendedInventoryItem extends InventoryItem {
-  orderMode: OrderMode;
-  suppliers: string[];
+interface ExtendedInventoryItem {
+  id: string;
+  name: string;
+  quantity: number;
+  unit: string;
+  min_threshold: number;
+  order_mode: OrderMode;
+  suppliers?: Array<{ id: string; name: string }>;
 }
 
-const availableSuppliers = [
-  'טמפו',
-  'תנובה',
-  'קוקה קולה',
-  'אסם',
-  'יינות ביתן',
-  'עלית',
-  'אורז הזהב',
-  'סנפרוסט',
-  'זוגלובק',
-  'מעדנות יוכנן'
-];
-
-const mockInventory: ExtendedInventoryItem[] = [
-  { id: '1', name: 'עגבניות', quantity: 15, unit: 'ק"ג', minThreshold: 10, orderMode: 'manual', suppliers: ['סנפרוסט'] },
-  { id: '2', name: 'קמח', quantity: 5, unit: 'ק"ג', minThreshold: 20, orderMode: 'semi-auto', suppliers: ['אסם'] },
-  { id: '3', name: 'שמן זית', quantity: 40, unit: 'ליטר', minThreshold: 10, orderMode: 'full-auto', suppliers: ['עלית'] },
-  { id: '4', name: 'ביצים', quantity: 24, unit: 'יחידות', minThreshold: 60, orderMode: 'semi-auto', suppliers: ['תנובה'] },
-  { id: '5', name: 'חזה עוף', quantity: 12, unit: 'ק"ג', minThreshold: 5, orderMode: 'manual', suppliers: ['מעדנות יוכנן', 'זוגלובק'] },
-];
-
 const Inventory: React.FC = () => {
-  const [inventory, setInventory] = useState<ExtendedInventoryItem[]>(mockInventory);
-  const [allSuppliers, setAllSuppliers] = useState<string[]>(availableSuppliers);
+  const [inventory, setInventory] = useState<ExtendedInventoryItem[]>([]);
+  const [allSuppliers, setAllSuppliers] = useState<Array<{ id: string; name: string }>>([]);
   const [editingSuppliers, setEditingSuppliers] = useState<string | null>(null);
   const [newSupplier, setNewSupplier] = useState<string>('');
-  const [openActionMenu, setOpenActionMenu] = useState<string | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
 
-  const handleOrderModeChange = (itemId: string, newMode: OrderMode) => {
-    setInventory(prev => prev.map(item => 
-      item.id === itemId ? { ...item, orderMode: newMode } : item
-    ));
-  };
+  // טעינת נתונים מהדאטאבייס
+  useEffect(() => {
+    loadData();
+  }, []);
 
-  const toggleSupplier = (itemId: string, supplier: string) => {
-    setInventory(prev => prev.map(item => {
-      if (item.id === itemId) {
-        const hasSupplier = item.suppliers.includes(supplier);
-        return {
-          ...item,
-          suppliers: hasSupplier 
-            ? item.suppliers.filter(s => s !== supplier)
-            : [...item.suppliers, supplier]
-        };
-      }
-      return item;
-    }));
-  };
-
-  const addNewSupplier = (itemId: string) => {
-    if (newSupplier.trim() && !allSuppliers.includes(newSupplier.trim())) {
-      setAllSuppliers(prev => [...prev, newSupplier.trim()]);
+  const loadData = async () => {
+    try {
+      setLoading(true);
+      setError(null);
+      const [items, suppliers] = await Promise.all([
+        inventoryService.getInventoryItems(),
+        inventoryService.getSuppliers()
+      ]);
+      setInventory(items as ExtendedInventoryItem[]);
+      setAllSuppliers(suppliers);
+    } catch (err: any) {
+      setError(err.message || 'שגיאה בטעינת הנתונים');
+      console.error('Error loading data:', err);
+    } finally {
+      setLoading(false);
     }
-    if (newSupplier.trim()) {
-      toggleSupplier(itemId, newSupplier.trim());
+  };
+
+  const handleOrderModeChange = async (itemId: string, newMode: OrderMode) => {
+    try {
+      await inventoryService.updateInventoryItem(itemId, { order_mode: newMode });
+      setInventory(prev => prev.map(item => 
+        item.id === itemId ? { ...item, order_mode: newMode } : item
+      ));
+    } catch (err: any) {
+      alert('שגיאה בעדכון מצב ההזמנה: ' + err.message);
+    }
+  };
+
+  const toggleSupplier = async (itemId: string, supplierId: string) => {
+    try {
+      const item = inventory.find(i => i.id === itemId);
+      const hasSupplier = item?.suppliers?.some(s => s.id === supplierId);
+      
+      if (hasSupplier) {
+        await inventoryService.unlinkItemFromSupplier(itemId, supplierId);
+      } else {
+        await inventoryService.linkItemToSupplier(itemId, supplierId);
+      }
+      
+      // עדכון מקומי
+      setInventory(prev => prev.map(item => {
+        if (item.id === itemId) {
+          const suppliers = item.suppliers || [];
+          return {
+            ...item,
+            suppliers: hasSupplier 
+              ? suppliers.filter(s => s.id !== supplierId)
+              : [...suppliers, allSuppliers.find(s => s.id === supplierId)!]
+          };
+        }
+        return item;
+      }));
+    } catch (err: any) {
+      alert('שגיאה בעדכון ספק: ' + err.message);
+    }
+  };
+
+  const addNewSupplier = async (itemId: string) => {
+    if (!newSupplier.trim()) return;
+    
+    try {
+      // בדוק אם הספק כבר קיים
+      let supplier = allSuppliers.find(s => s.name === newSupplier.trim());
+      
+      // אם לא, צור אותו
+      if (!supplier) {
+        supplier = await inventoryService.addSupplier(newSupplier.trim());
+        setAllSuppliers(prev => [...prev, supplier!]);
+      }
+      
+      // קשר לפריט
+      await inventoryService.linkItemToSupplier(itemId, supplier.id);
+      
+      // עדכון מקומי
+      setInventory(prev => prev.map(item => {
+        if (item.id === itemId) {
+          const suppliers = item.suppliers || [];
+          return {
+            ...item,
+            suppliers: [...suppliers, supplier!]
+          };
+        }
+        return item;
+      }));
+      
       setNewSupplier('');
+    } catch (err: any) {
+      alert('שגיאה בהוספת ספק: ' + err.message);
     }
   };
 
@@ -77,11 +128,54 @@ const Inventory: React.FC = () => {
     }
   };
 
-  const handleOrderAction = (itemId: string, action: string) => {
-    const item = inventory.find(i => i.id === itemId);
-    alert(`פעולה: ${action}\nפריט: ${item?.name}\nספקים: ${item?.suppliers.join(', ') || 'לא נבחרו'}`);
-    setOpenActionMenu(null);
+  const addNewInventoryItem = async () => {
+    try {
+      const newItem = await inventoryService.addInventoryItem({
+        name: 'פריט חדש',
+        quantity: 0,
+        unit: 'ק"ג',
+        min_threshold: 10,
+        order_mode: 'manual'
+      });
+      setInventory(prev => [...prev, { ...newItem, suppliers: [] } as ExtendedInventoryItem]);
+    } catch (err: any) {
+      alert('שגיאה בהוספת פריט: ' + err.message);
+    }
   };
+
+  const handleEditAction = (itemId: string, action: 'immediate' | 'supplier-schedule') => {
+    const item = inventory.find(i => i.id === itemId);
+    const supplierNames = item?.suppliers?.map(s => s.name).join(', ') || 'לא נבחרו';
+    if (action === 'immediate') {
+      alert(`הזמנה מיידית עבור: ${item?.name}\nספקים: ${supplierNames}`);
+    } else {
+      alert(`הזמנה בהתאם ללוז הספק עבור: ${item?.name}\nספקים: ${supplierNames}`);
+    }
+  };
+
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center h-96">
+        <Loader2 className="animate-spin text-orange-600" size={48} />
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="bg-red-50 border border-red-200 rounded-xl p-6 text-center">
+        <AlertCircle className="mx-auto text-red-600 mb-2" size={48} />
+        <h3 className="text-xl font-bold text-red-800 mb-2">שגיאה בטעינת הנתונים</h3>
+        <p className="text-red-600 mb-4">{error}</p>
+        <button 
+          onClick={loadData}
+          className="bg-red-600 text-white px-6 py-2 rounded-lg hover:bg-red-700"
+        >
+          נסה שוב
+        </button>
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-6">
@@ -90,7 +184,10 @@ const Inventory: React.FC = () => {
           <h2 className="text-2xl font-bold text-slate-800">ניהול מלאי</h2>
           <p className="text-slate-500">עקוב אחר חומרי הגלם ונהל הזמנות ספקים.</p>
         </div>
-        <button className="bg-orange-600 text-white px-6 py-2 rounded-xl flex items-center gap-2 hover:bg-orange-700 transition-colors shadow-lg">
+        <button 
+          onClick={addNewInventoryItem}
+          className="bg-orange-600 text-white px-6 py-2 rounded-xl flex items-center gap-2 hover:bg-orange-700 transition-colors shadow-lg"
+        >
           <Plus size={20} />
           <span>הוסף פריט מלאי</span>
         </button>
@@ -121,8 +218,9 @@ const Inventory: React.FC = () => {
             </thead>
             <tbody className="divide-y divide-slate-50">
               {inventory.map((item) => {
-                const isLow = item.quantity < item.minThreshold;
+                const isLow = item.quantity < item.min_threshold;
                 const isEditing = editingSuppliers === item.id;
+                const suppliers = item.suppliers || [];
                 return (
                   <tr key={item.id} className="hover:bg-slate-50/50 transition-colors">
                     <td className="p-3 md:p-4 font-medium text-slate-800">{item.name}</td>
@@ -147,11 +245,11 @@ const Inventory: React.FC = () => {
                             onClick={() => setEditingSuppliers(item.id)}
                             className="text-right w-full px-3 py-1.5 rounded-lg border border-slate-200 bg-white text-xs hover:bg-slate-50 transition-colors"
                           >
-                            {item.suppliers.length > 0 ? (
+                            {suppliers.length > 0 ? (
                               <div className="flex flex-wrap gap-1">
-                                {item.suppliers.map(supplier => (
-                                  <span key={supplier} className="bg-orange-100 text-orange-700 px-2 py-0.5 rounded">
-                                    {supplier}
+                                {suppliers.map(supplier => (
+                                  <span key={supplier.id} className="bg-orange-100 text-orange-700 px-2 py-0.5 rounded">
+                                    {supplier.name}
                                   </span>
                                 ))}
                               </div>
@@ -169,14 +267,14 @@ const Inventory: React.FC = () => {
                             </div>
                             <div className="space-y-1 max-h-48 overflow-y-auto mb-2">
                               {allSuppliers.map(supplier => (
-                                <label key={supplier} className="flex items-center gap-2 p-1.5 hover:bg-slate-50 rounded cursor-pointer">
+                                <label key={supplier.id} className="flex items-center gap-2 p-1.5 hover:bg-slate-50 rounded cursor-pointer">
                                   <input
                                     type="checkbox"
-                                    checked={item.suppliers.includes(supplier)}
-                                    onChange={() => toggleSupplier(item.id, supplier)}
+                                    checked={suppliers.some(s => s.id === supplier.id)}
+                                    onChange={() => toggleSupplier(item.id, supplier.id)}
                                     className="rounded border-slate-300 text-orange-600 focus:ring-orange-500"
                                   />
-                                  <span className="text-sm text-slate-700">{supplier}</span>
+                                  <span className="text-sm text-slate-700">{supplier.name}</span>
                                 </label>
                               ))}
                             </div>
@@ -204,69 +302,29 @@ const Inventory: React.FC = () => {
                     </td>
                     <td className="p-3 md:p-4">
                       <select
-                        value={item.orderMode}
+                        value={item.order_mode}
                         onChange={(e) => handleOrderModeChange(item.id, e.target.value as OrderMode)}
-                        className={`px-3 py-1.5 rounded-lg border text-xs font-medium cursor-pointer transition-colors ${getOrderModeColor(item.orderMode)} hover:opacity-80 focus:outline-none focus:ring-2 focus:ring-orange-500`}
+                        className={`px-3 py-1.5 rounded-lg border text-xs font-medium cursor-pointer transition-colors ${getOrderModeColor(item.order_mode)} hover:opacity-80 focus:outline-none focus:ring-2 focus:ring-orange-500`}
                       >
-                       div className="relative">
-                        <button
-                          onClick={() => setOpenActionMenu(openActionMenu === item.id ? null : item.id)}
-                          className="px-3 py-1.5 bg-orange-600 text-white rounded-lg flex items-center gap-1 hover:bg-orange-700 transition-colors text-sm font-medium"
-                        >
-                          <ShoppingCart size={16} />
-                          <span>פעולות</span>
-                          <ChevronDown size={14} />
-                        </button>
-                        
-                        {openActionMenu === item.id && (
-                          <div className="absolute z-20 left-0 mt-1 bg-white border border-slate-200 rounded-lg shadow-xl min-w-[220px]">
-                            <div className="py-1">
-                              <button
-                                onClick={() => handleOrderAction(item.id, 'הזמנה מיידית')}
-                                className="w-full text-right px-4 py-2 text-sm text-slate-700 hover:bg-orange-50 hover:text-orange-700 transition-colors flex items-center gap-2"
-                              >
-                                <div className="w-2 h-2 rounded-full bg-red-500"></div>
-                                בצע הזמנה מיידית
-                              </button>
-                              <button
-                                onClick={() => handleOrderAction(item.id, 'הזמנה לפי כמות שנקבעה')}
-                                className="w-full text-right px-4 py-2 text-sm text-slate-700 hover:bg-orange-50 hover:text-orange-700 transition-colors flex items-center gap-2"
-                              >
-                                <div className="w-2 h-2 rounded-full bg-blue-500"></div>
-                                בצע הזמנה לפי כמות שנקבעה
-                              </button>
-                              <button
-                                onClick={() => handleOrderAction(item.id, 'הזמנה לפי תאריכי הספק')}
-                                className="w-full text-right px-4 py-2 text-sm text-slate-700 hover:bg-orange-50 hover:text-orange-700 transition-colors flex items-center gap-2"
-                              >
-                                <div className="w-2 h-2 rounded-full bg-purple-500"></div>
-                                בצע הזמנה לפי תאריכי הספק
-                              </button>
-                              <div className="border-t border-slate-100 my-1"></div>
-                              <button
-                                onClick={() => handleOrderAction(item.id, 'הזמנה לשבוע הבא')}
-                                className="w-full text-right px-4 py-2 text-sm text-slate-700 hover:bg-orange-50 hover:text-orange-700 transition-colors flex items-center gap-2"
-                              >
-                                <div className="w-2 h-2 rounded-full bg-green-500"></div>
-                                בצע הזמנה לשבוע הבא
-                              </button>
-                              <button
-                                onClick={() => handleOrderAction(item.id, 'הזמנה לחודש הבא')}
-                                className="w-full text-right px-4 py-2 text-sm text-slate-700 hover:bg-orange-50 hover:text-orange-700 transition-colors flex items-center gap-2"
-                              >
-                                <div className="w-2 h-2 rounded-full bg-yellow-500"></div>
-                                בצע הזמנה לחודש הבא
-                              </button>
-                            </div>
-                          </div>
-                        )}
-                      </div
+                        <option value="manual">ידני</option>
                         <option value="semi-auto">חצי אוטומטי</option>
                         <option value="full-auto">אוטומטי לחלוטין</option>
                       </select>
                     </td>
                     <td className="p-3 md:p-4">
-                      <button className="text-orange-600 hover:underline text-sm font-medium">ערוך</button>
+                      <select
+                        onChange={(e) => {
+                          if (e.target.value) {
+                            handleEditAction(item.id, e.target.value as 'immediate' | 'supplier-schedule');
+                            e.target.value = '';
+                          }
+                        }}
+                        className="px-3 py-1.5 rounded-lg border border-orange-200 bg-orange-50 text-orange-700 text-xs font-medium cursor-pointer transition-colors hover:opacity-80 focus:outline-none focus:ring-2 focus:ring-orange-500"
+                      >
+                        <option value="">בחר פעולה...</option>
+                        <option value="immediate">הזמן מיידי</option>
+                        <option value="supplier-schedule">הזמן בהתאם ללוז הספק</option>
+                      </select>
                     </td>
                   </tr>
                 );

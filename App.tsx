@@ -6,6 +6,7 @@ import Inventory from './components/Inventory';
 import Messaging from './components/Messaging';
 import Finance from './components/Finance';
 import Orders from './components/Orders';
+import Suppliers from './components/Suppliers';
 import AppGuide from './components/AppGuide';
 import { View } from './types';
 import { CreditCard, Utensils } from 'lucide-react';
@@ -25,6 +26,8 @@ const App: React.FC = () => {
         return <Orders />;
       case 'finance':
         return <Finance />;
+      case 'suppliers':
+        return <Suppliers />;
       default:
         return <Dashboard />;
     }
