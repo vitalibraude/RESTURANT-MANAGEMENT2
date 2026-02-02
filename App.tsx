@@ -9,6 +9,7 @@ import Orders from './components/Orders';
 import Suppliers from './components/Suppliers';
 import SupplierOrders from './components/SupplierOrders';
 import Employees from './components/Employees';
+import WorkLog from './components/WorkLog';
 import AppGuide from './components/AppGuide';
 import { View } from './types';
 import { CreditCard, Utensils } from 'lucide-react';
@@ -40,6 +41,8 @@ const App: React.FC = () => {
         return <SupplierOrders preSelectedItem={selectedInventoryItem} />;
       case 'employees':
         return <Employees />;
+      case 'work-log':
+        return <WorkLog />;
       default:
         return <Dashboard />;
     }
