@@ -1,0 +1,7 @@
+{
+  "name": "ניהול מסעדה חכם - SmartRest",
+  "description": "מערכת מקיפה לניהול מסעדה הכוללת מכירות, מלאי, פיננסים, וסליקה, עם מדריך קולי מובנה.",
+  "requestFramePermissions": [
+    "microphone"
+  ]
+}
