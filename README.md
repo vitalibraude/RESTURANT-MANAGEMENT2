@@ -1,20 +1,45 @@
-<div align="center">
-<img width="1200" height="475" alt="GHBanner" src="https://github.com/user-attachments/assets/0aa67016-6eaf-458a-adb2-6e31a0763ed6" />
-</div>
+# 🍽️ Restaurant Management System
 
-# Run and deploy your AI Studio app
+**מערכת ניהול מסעדה חכמה**
 
-This contains everything you need to run your app locally.
+מערכת ניהול מקיפה למסעדות המשלבת בינוח מלאכותית לניהול מלאי, הזמנות, והודעות.
 
-View your app in AI Studio: https://ai.studio/apps/drive/1QoDd7rNfiBv8jEqhOglqxAb5CPsQhEUr
+---
 
-## Run Locally
+**נבנה על ידי: ויטלי פבלובסקי**
 
-**Prerequisites:**  Node.js
+## 🚀 הרצה מקומית
 
+**דרישות מקדימות:** Node.js
 
-1. Install dependencies:
-   `npm install`
-2. Set the `GEMINI_API_KEY` in [.env.local](.env.local) to your Gemini API key
-3. Run the app:
-   `npm run dev`
+1. התקן תלויות:
+   ```bash
+   npm install
+   ```
+
+2. הגדר את ה-`GEMINI_API_KEY` בקובץ `.env.local`:
+   ```
+   GEMINI_API_KEY=your_api_key_here
+   ```
+
+3. הרץ את האפליקציה:
+   ```bash
+   npm run dev
+   ```
+
+4. פתח בדפדפן: `http://localhost:3001`
+
+## 🌐 GitHub Pages
+
+האפליקציה מפורסמת ב: https://vitalibraude.github.io/RESTURANT-MANAGEMENT/
+
+## ✨ תכונות
+
+- 📊 ניהול מלאי חכם
+- 💬 מערכת הודעות
+- 📈 דשבורד ניתוח נתונים
+- 🤖 אינטגרציה עם Gemini AI
+
+---
+
+**© 2026 ויטלי פבלובסקי - All Rights Reserved**
