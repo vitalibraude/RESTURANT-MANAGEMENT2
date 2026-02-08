@@ -13,7 +13,8 @@ import {
   ShoppingCart,
   Users,
   Calendar,
-  Settings
+  Settings,
+  Camera
 } from 'lucide-react';
 import { View } from '../types';
 
@@ -36,6 +37,7 @@ const Sidebar: React.FC<SidebarProps> = ({ activeView, onViewChange }) => {
     { id: 'finance', label: 'כספים וסליקה', icon: CreditCard },
     { id: 'messaging', label: 'הודעות ללקוחות', icon: MessageSquare },
     { id: 'settings', label: 'הגדרות API', icon: Settings },
+    { id: 'inventory-camera', label: 'הגדרות תיעוד מלאי', icon: Camera },
   ];
 
   const handleNavigation = (view: View) => {

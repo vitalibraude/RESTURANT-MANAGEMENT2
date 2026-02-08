@@ -31,4 +31,4 @@ export interface Transaction {
   date: Date;
 }
 
-export type View = 'dashboard' | 'orders' | 'inventory' | 'finance' | 'messaging' | 'suppliers' | 'supplier-orders' | 'employees' | 'work-log' | 'settings';
+export type View = 'dashboard' | 'orders' | 'inventory' | 'finance' | 'messaging' | 'suppliers' | 'supplier-orders' | 'employees' | 'work-log' | 'settings' | 'inventory-camera';

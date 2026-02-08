@@ -13,6 +13,7 @@ import WorkLog from './components/WorkLog';
 import AppGuide from './components/AppGuide';
 import Login from './components/Login';
 import Settings from './components/Settings';
+import InventoryCamera from './components/InventoryCamera';
 import { View } from './types';
 import { CreditCard, Utensils } from 'lucide-react';
 
@@ -60,6 +61,8 @@ const App: React.FC = () => {
         return <WorkLog />;
       case 'settings':
         return <Settings />;
+      case 'inventory-camera':
+        return <InventoryCamera />;
       default:
         return <Dashboard />;
     }
