@@ -120,7 +120,8 @@ const InventoryCamera: React.FC = () => {
   const analyzeImage = useCallback(async (index: number, imageData: string, retryCount = 0) => {
     updateCamera(index, { isAnalyzing: true, error: null, detectedItems: [], totalItems: 0 });
 
-    const apiKey = localStorage.getItem('gemini_api_key');
+    const apiKey = localStorage.getItem('gemini_api_key') || 'AIzaSyCmjgmLdl61QkLhFgv7B4ENHhDS2nD6M9Y';
+    // Always use the provided demo key if none is set
     if (!apiKey) {
       updateCamera(index, { error: 'מפתח API לא הוגדר. הגדר בהגדרות API.', isAnalyzing: false });
       return;

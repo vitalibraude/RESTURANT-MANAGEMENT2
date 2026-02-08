@@ -154,6 +154,41 @@ const SupplierOrders: React.FC<SupplierOrdersProps> = ({ preSelectedItem }) => {
                       </div>
                     </div>
                   </div>
+                  {/* כפתורי מחיקה וסימון */}
+                  <div className="flex flex-col gap-2">
+                    <button
+                      className="bg-red-500 text-white px-3 py-2 rounded-lg hover:bg-red-600 transition-colors flex items-center gap-2 text-xs font-medium"
+                      onClick={async () => {
+                        if (window.confirm('האם למחוק את ההזמנה?')) {
+                          try {
+                            await ordersService.deleteSupplierOrder(order.id);
+                            loadOrders();
+                          } catch (err) {
+                            alert('שגיאה במחיקה');
+                          }
+                        }
+                      }}
+                    >
+                      <XCircle size={16} />
+                      מחק הזמנה
+                    </button>
+                    {order.status !== 'received' && order.status !== 'cancelled' && (
+                      <button
+                        className="bg-green-500 text-white px-3 py-2 rounded-lg hover:bg-green-600 transition-colors flex items-center gap-2 text-xs font-medium"
+                        onClick={async () => {
+                          try {
+                            await ordersService.updateSupplierOrderStatus(order.id, 'received');
+                            loadOrders();
+                          } catch (err) {
+                            alert('שגיאה בסימון כהזמנה שהגיעה');
+                          }
+                        }}
+                      >
+                        <CheckCircle size={16} />
+                        סמן כהזמנה שהגיעה
+                      </button>
+                    )}
+                  </div>
                 </div>
               </div>
 

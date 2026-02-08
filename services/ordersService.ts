@@ -76,6 +76,23 @@ export function subscribeToOrders(callback: (order: Order) => void) {
 }
 
 // ====== הזמנות מספקים ======
+// מחיקת הזמנה מספק
+export async function deleteSupplierOrder(id: string) {
+  const { error } = await supabase
+    .from('supplier_orders')
+    .delete()
+    .eq('id', id);
+  if (error) throw error;
+}
+
+// עדכון סטטוס הזמנה מספק
+export async function updateSupplierOrderStatus(id: string, status: 'pending' | 'confirmed' | 'received' | 'cancelled') {
+  const { error } = await supabase
+    .from('supplier_orders')
+    .update({ status })
+    .eq('id', id);
+  if (error) throw error;
+}
 
 export interface SupplierOrder {
   id: string;
