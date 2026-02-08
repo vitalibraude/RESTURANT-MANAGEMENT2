@@ -12,7 +12,8 @@ import {
   Store,
   ShoppingCart,
   Users,
-  Calendar
+  Calendar,
+  Settings
 } from 'lucide-react';
 import { View } from '../types';
 
@@ -34,6 +35,7 @@ const Sidebar: React.FC<SidebarProps> = ({ activeView, onViewChange }) => {
     { id: 'work-log', label: 'יומן עבודה', icon: Calendar },
     { id: 'finance', label: 'כספים וסליקה', icon: CreditCard },
     { id: 'messaging', label: 'הודעות ללקוחות', icon: MessageSquare },
+    { id: 'settings', label: 'הגדרות API', icon: Settings },
   ];
 
   const handleNavigation = (view: View) => {

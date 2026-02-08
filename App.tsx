@@ -11,11 +11,28 @@ import SupplierOrders from './components/SupplierOrders';
 import Employees from './components/Employees';
 import WorkLog from './components/WorkLog';
 import AppGuide from './components/AppGuide';
+import Login from './components/Login';
+import Settings from './components/Settings';
 import { View } from './types';
 import { CreditCard, Utensils } from 'lucide-react';
 
 const App: React.FC = () => {
   const [currentView, setCurrentView] = useState<View>('dashboard');
+  const [isAuthenticated, setIsAuthenticated] = useState(false);
+
+  const handleLogin = (username: string, password: string) => {
+    // Simple authentication check
+    if (username.toLowerCase() === 'ויטלי' && password === '1234') {
+      setIsAuthenticated(true);
+    } else {
+      alert('שם משתמש או סיסמה שגויים');
+    }
+  };
+
+  // Show login screen if not authenticated
+  if (!isAuthenticated) {
+    return <Login onLogin={handleLogin} />;
+  }
 
   const handleNavigateToOrders = () => {
     setCurrentView('supplier-orders');
@@ -41,6 +58,8 @@ const App: React.FC = () => {
         return <Employees />;
       case 'work-log':
         return <WorkLog />;
+      case 'settings':
+        return <Settings />;
       default:
         return <Dashboard />;
     }
